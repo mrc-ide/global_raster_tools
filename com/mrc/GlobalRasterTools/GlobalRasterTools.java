@@ -528,37 +528,43 @@ public class GlobalRasterTools {
    * @return the id of the nearest non-null unit id
    */  
   
-  public static int getNearest_ints(int i, int j, int[][] unit_ids, int null_unit) {
+  /**
+   * @param i
+   * @param j
+   * @return
+   */
+  public int getNearest_ints(int i, int j) {
     int correction=-1;
     int radius = 1;
-    int mx=unit_ids.length;
-    int my=unit_ids[0].length;
+    
+    int mx=map.length;
+    int my=map[0].length;
     boolean found = false;
     while (!found) { // First do the cross shapes - nearest points.
-      if (unit_ids[(i+(mx-radius))%mx][j] != null_unit) {       correction=((int) unit_ids[(i+(mx-radius))%mx][j]); found = true; }
-      else if (unit_ids[(i+radius)%mx][j] != null_unit) {       correction=((int) unit_ids[(i+radius)%mx][j]);      found = true; }
-      else if (unit_ids[i][(j+radius)%my] != null_unit) {       correction=((int) unit_ids[i][(j+radius)%my]);      found = true; }
-      else if (unit_ids[i][(j+(my-radius))%my] != null_unit) {  correction=((int) unit_ids[i][(j+(my-radius))%my]); found = true; }
+      if (map[(i+(mx-radius))%mx][j] != -1) {       correction=((int) map[(i+(mx-radius))%mx][j]); found = true; }
+      else if (map[(i+radius)%mx][j] != -1) {       correction=((int) map[(i+radius)%mx][j]);      found = true; }
+      else if (map[i][(j+radius)%my] != -1) {       correction=((int) map[i][(j+radius)%my]);      found = true; }
+      else if (map[i][(j+(my-radius))%my] != -1) {  correction=((int) map[i][(j+(my-radius))%my]); found = true; }
       
       else { // Do the other points in the surrounding square,
                // starting with those nearest the cross.
         for (int r = 1; r < radius; r++) {
           if (!found) {
-            if (unit_ids[(i+(mx-radius))%mx][(j+r)%my] != null_unit)      {      correction=((int) unit_ids[(i+(mx-radius))%mx][(j+r)%my]);      found = true; } 
-            else if (unit_ids[(i+r)%mx][(j+radius)%my] != null_unit) {           correction=((int) unit_ids[(i+r)%mx][(j+radius)%my]);           found = true; } 
-            else if (unit_ids[(i+radius)%mx][(j+(my-r))%my] != null_unit) {      correction=((int) unit_ids[(i+radius)%mx][(j+(my-r))%my]);      found = true; } 
-            else if (unit_ids[(i+(mx-r))%mx][(j+(my-radius))%my] != null_unit) { correction=((int) unit_ids[(i+(mx-r))%mx][(j+(my-radius))%my]); found = true; } 
-            else if (unit_ids[(i+(mx-radius))%mx][(j+(my-r))%my] != null_unit) { correction=((int) unit_ids[(i+(mx-radius))%mx][(j+(my-r))%my]); found = true; } 
-            else if (unit_ids[(i+(mx-r))%mx][(j+radius)%my] != null_unit) {      correction=((int) unit_ids[(i+(mx-r))%mx][(j+radius)%my]);      found = true; } 
-            else if (unit_ids[(i+radius)%mx][(j+r)%my] != null_unit) {           correction=((int) unit_ids[(i+radius)%mx][(j+r)%my]);           found = true; } 
-            else if (unit_ids[(i+r)%mx][(j+(my-radius))%my] != null_unit) {      correction=((int) unit_ids[(i+r)%mx][(j+(my-radius))%my]);      found = true; }
+            if (map[(i+(mx-radius))%mx][(j+r)%my] != -1)      {      correction=((int) map[(i+(mx-radius))%mx][(j+r)%my]);      found = true; } 
+            else if (map[(i+r)%mx][(j+radius)%my] != -1) {           correction=((int) map[(i+r)%mx][(j+radius)%my]);           found = true; } 
+            else if (map[(i+radius)%mx][(j+(my-r))%my] != -1) {      correction=((int) map[(i+radius)%mx][(j+(my-r))%my]);      found = true; } 
+            else if (map[(i+(mx-r))%mx][(j+(my-radius))%my] != -1) { correction=((int) map[(i+(mx-r))%mx][(j+(my-radius))%my]); found = true; } 
+            else if (map[(i+(mx-radius))%mx][(j+(my-r))%my] != -1) { correction=((int) map[(i+(mx-radius))%mx][(j+(my-r))%my]); found = true; } 
+            else if (map[(i+(mx-r))%mx][(j+radius)%my] != -1) {      correction=((int) map[(i+(mx-r))%mx][(j+radius)%my]);      found = true; } 
+            else if (map[(i+radius)%mx][(j+r)%my] != -1) {           correction=((int) map[(i+radius)%mx][(j+r)%my]);           found = true; } 
+            else if (map[(i+r)%mx][(j+(my-radius))%my] != -1) {      correction=((int) map[(i+r)%mx][(j+(my-radius))%my]);      found = true; }
           }
         }
         if (!found) {
-          if (unit_ids[(i+(mx-radius))%mx][(j+radius)%my] != null_unit) {           correction=((int) unit_ids[(i+(mx-radius))%mx][(j+radius)%my]);      found = true; } 
-          else if (unit_ids[(i+radius)%mx][(j+(my-radius))%my] != null_unit) {      correction=((int) unit_ids[(i+radius)%mx][(j+(my-radius))%my]);      found = true; } 
-          else if (unit_ids[(i+radius)%mx][(j+radius)%my] != null_unit) {           correction=((int) unit_ids[(i+radius)%mx][(j+radius)%my]);           found = true; } 
-          else if (unit_ids[(i+(mx-radius))%mx][(j+(my-radius))%my] != null_unit) { correction=((int) unit_ids[(i+(mx-radius))%mx][(j+(my-radius))%my]); found = true; }  
+          if (map[(i+(mx-radius))%mx][(j+radius)%my] != -1) {           correction=((int) map[(i+(mx-radius))%mx][(j+radius)%my]);      found = true; } 
+          else if (map[(i+radius)%mx][(j+(my-radius))%my] != -1) {      correction=((int) map[(i+radius)%mx][(j+(my-radius))%my]);      found = true; } 
+          else if (map[(i+radius)%mx][(j+radius)%my] != -1) {           correction=((int) map[(i+radius)%mx][(j+radius)%my]);           found = true; } 
+          else if (map[(i+(mx-radius))%mx][(j+(my-radius))%my] != -1) { correction=((int) map[(i+(mx-radius))%mx][(j+(my-radius))%my]); found = true; }  
         }
       }
       radius++;
@@ -578,8 +584,8 @@ public class GlobalRasterTools {
    * @param  null_unit the id that represents "no unit here"
    * @return the id of the nearest non-null unit id
    */ 
-  public int getNearest(double lon, double lat, int[][] unit_ids, int null_unit) {
-    return getNearest_ints(getDefaultXForLon(lon), getDefaultYForLat(lat), unit_ids.clone(), null_unit);
+  public int getNearest(double lon, double lat) {
+    return getNearest_ints(getDefaultXForLon(lon), getDefaultYForLat(lat));
   }
   
   /**
@@ -588,11 +594,10 @@ public class GlobalRasterTools {
    * 
    * @param  id           id of the unit for which to find centroid 
    * @param  pop_weighted true, if you want population-weighted centroid, false for "normalised population" weighted.
-   * @param  map          the rasterised array of ids.
    * @param  pop          rasterised population
    * @return an array of three doubles: [0] longitude of centroid, [1] latitude of centroid, [2] The population, or the number of cells in the centroid, depending on pop_weighted.
    */ 
-  public double[] getCentroid(int id, boolean pop_weighted, int[][] map, int[][] pop) {
+  public double[] getCentroid(int id, boolean pop_weighted, int[][] pop) {
     
     double[] final_result = new double[3]; // Return longitude and latitude.
     
