@@ -56,15 +56,22 @@ Usually, these are aliasing issues on a water border. Use this function to find 
 
 ## Compiling
 
+Nothing special.
+
 ```
 javac com/mrc/GlobalRasterTools/*.java
-javac examples/*.java
+javac examples/GaviCountries/*.java
+javac examples/LorenzoTiles/*.java
 
 ```
 
 ## Running the examples
 
+Similarly, nothing very difficult here - although I'm not sure whether you really want to run these. Note the high memory
+usage - the nature of my polygon filling approach, and more generally when working at 43200x21600 resolution.
+
 ```
-java -Xmx20g examples.GaviCountries
+java -Xmx20g examples.GaviCountries.GaviCountries
+java -Xmx20g examples.LorenzoTiles.LorenzoTiles
 ```
 
