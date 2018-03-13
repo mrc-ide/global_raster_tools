@@ -79,16 +79,16 @@ public class GaviCountries {
     int cc98 = new Color(255,240,222).getRGB();
     
     
-    int w = GRT.map.length / 10;
-    int h = GRT.map[0].length / 10;
+    int h = GRT.map.length / 10;
+    int w = GRT.map[0].length / 10;
     BufferedImage png = new BufferedImage(w, h, BufferedImage.TYPE_3BYTE_BGR);
     for (int j=0; j<h; j++) for (int i=0; i<w; i++) png.setRGB(i, j, white);
     
-    for (int j=0; j<GRT.map[0].length; j++) {
-      for (int i=0; i<GRT.map.length; i++) {
+    for (int j=0; j<GRT.map.length; j++) {
+      for (int i=0; i<GRT.map[j].length; i++) {
         if (GRT.map[i][j]>=0) {
-          if (c73.contains(GRT.map[i][j])) png.setRGB(i/10, j/10, cc73);
-          else if (c98.contains(GRT.map[i][j])) png.setRGB(i/10, j/10, cc98);
+          if (c73.contains(GRT.map[j][i])) png.setRGB(i/10, j/10, cc73);
+          else if (c98.contains(GRT.map[j][i])) png.setRGB(i/10, j/10, cc98);
           else png.setRGB(i/10, j/10, grey);
         } 
       }
@@ -96,12 +96,12 @@ public class GaviCountries {
     
     // Make boundary lines a bit thicker.
     
-    for (int i=0; i<GRT.map.length-1; i++) {
-      for (int j=0; j<GRT.map[i].length-1; j++) {
-        int c1=GRT.map[i][j];
-        int c2=GRT.map[i+1][j+1];
-        int c3=GRT.map[i+1][j];
-        int c4=GRT.map[i][j+1];
+    for (int j=0; j<GRT.map.length-1; j++) {
+      for (int i=0; i<GRT.map[j].length-1; i++) {
+        int c1=GRT.map[j][i];
+        int c2=GRT.map[j+1][i+1];
+        int c3=GRT.map[j][i+1];
+        int c4=GRT.map[j+1][i];
         int max = Math.max(c1, Math.max(c2, Math.max(c3,c4)));
         if (c1==-1) c1=max;
         if (c2==-1) c2=max;

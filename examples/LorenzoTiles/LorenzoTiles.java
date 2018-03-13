@@ -27,7 +27,7 @@ public class LorenzoTiles {
       if ((px < 0) || (py < 0)) {
         System.out.println("lon=" + lon + ", lat=" + lat);
       }
-      if (GRT.map[px][py] >= 0) bits = GRT.unit_numbers.get(GRT.map[px][py]).split("\t");
+      if (GRT.map[py][px] >= 0) bits = GRT.unit_numbers.get(GRT.map[py][px]).split("\t");
       else bits = GRT.unit_numbers.get(GRT.getNearest(lon, lat)).split("\t");
 
       // Work out adm0,adm1,adm2

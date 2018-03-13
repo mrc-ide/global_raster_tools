@@ -19,7 +19,11 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileChannel.MapMode;
 import java.nio.charset.Charset;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -362,7 +366,7 @@ public class GlobalRasterTools {
    * paragraphs separated by HTML paragraph breaks.
    *
    * @param  polys              The list of polygons to rasterise
-   * @param  unit_ids           Id of polygon in each pixel of final image.
+   * @param  unit_ids           Id of polygon in each pixel of final image. [height][width]
    * @param  contention_indexes Pointer into contentions array, if this pixel is claimed by more than one admin unit.
    * @param  contentions        For each pixel where contention occurs, list the unit ids that were claiming that pixel.
    * @param  code               The id of the admin unit being rasterised 
@@ -418,18 +422,18 @@ public class GlobalRasterTools {
     for (int i = minx; i <= maxx; i++) {
       for (int j = miny; j <= maxy; j++) {
         if (buffer.getRGB(i, j)!=black) {
-          if (unit_ids[i][j] == null_unit) unit_ids[i][j] = code;
-          else if (unit_ids[i][j] != code) {
-            if (contention_indexes[i][j] == -1) {
+          if (unit_ids[j][i] == null_unit) unit_ids[j][i] = code;
+          else if (unit_ids[j][i] != code) {
+            if (contention_indexes[j][i] == -1) {
               ArrayList<Integer> ai = new ArrayList<Integer>();
               ai.add(code);
-              ai.add(unit_ids[i][j]);
-              contention_indexes[i][j] = contentions.size();
+              ai.add(unit_ids[j][i]);
+              contention_indexes[j][i] = contentions.size();
               contentions.add(ai);
             } else {
-              ArrayList<Integer> ai = contentions.get(contention_indexes[i][j]);
+              ArrayList<Integer> ai = contentions.get(contention_indexes[j][i]);
               if (!ai.contains(code)) ai.add(code);
-              if (!ai.contains(unit_ids[i][j])) ai.add(unit_ids[i][j]); 
+              if (!ai.contains(unit_ids[j][i])) ai.add(unit_ids[j][i]); 
             }
           }
           buffer.setRGB(i, j, black);
@@ -442,16 +446,16 @@ public class GlobalRasterTools {
   public void makeMap() throws Exception {
     map = null;
     System.gc();
-    map = new int[WIDTH][HEIGHT];
-    int[][] contention_indexes = new int[43200][21600];
+    map = new int[HEIGHT][WIDTH];
+    int[][] contention_indexes = new int[HEIGHT][WIDTH];
     
     System.out.println("Getting contentious memory");
     ArrayList<ArrayList<Integer>> contentions = new ArrayList<ArrayList<Integer>>();
 
-    for (int i = 0; i < 43200; i++) {
-      for (int j = 0; j < 21600; j++) {
-        map[i][j] = -1;
-        contention_indexes[i][j] = -1;
+    for (int j = 0; j < HEIGHT; j++) {
+      for (int i = 0; i < WIDTH; i++) {
+        map[j][i] = -1;
+        contention_indexes[j][i] = -1;
       }
     }
 
@@ -475,9 +479,9 @@ public class GlobalRasterTools {
    */
   public void resolveContentions(ArrayList<ArrayList<DPolygon>> all_polygons,int[][] map, int[][] contention_indexes, ArrayList<ArrayList<Integer>> contentions) {
     Rectangle cell = new Rectangle();
-    for (int i = 0; i < WIDTH; i++) {
-      for (int j = 0; j < HEIGHT; j++) {
-        if (contention_indexes[i][j]>=0) {
+    for (int j = 0; j < HEIGHT; j++) {
+      for (int i = 0; i < WIDTH; i++) {
+        if (contention_indexes[j][i]>=0) {
           int xleft = (int) (((i / RESOLUTION) - 180.0) * INT_SCALER);
           int ybottom = (int) (((((WIDTH-1) - j) / RESOLUTION) - 90) * INT_SCALER);
           int ytop = (int) (ybottom - (INT_SCALER / RESOLUTION));
@@ -485,7 +489,7 @@ public class GlobalRasterTools {
           cell.setBounds(xleft, ytop, rectsize, rectsize);
           int max_score = 0;
           int best_id = -1;
-          ArrayList<Integer> cs = contentions.get(contention_indexes[i][j]);
+          ArrayList<Integer> cs = contentions.get(contention_indexes[j][i]);
 
           for (int k = 0; k < cs.size(); k++) {
             ArrayList<DPolygon> adp = all_polygons.get(cs.get(k));
@@ -509,7 +513,7 @@ public class GlobalRasterTools {
             }
           }
           // System.out.println("Contention at "+i+","+j+" from "+unit_ids[i][j]+" to "+best_id);
-          map[i][j] = best_id;
+          map[j][i] = best_id;
         }
       }
     }
@@ -537,34 +541,34 @@ public class GlobalRasterTools {
     int correction=-1;
     int radius = 1;
     
-    int mx=map.length;
-    int my=map[0].length;
+    int my=map.length;
+    int mx=map[0].length;
     boolean found = false;
     while (!found) { // First do the cross shapes - nearest points.
-      if (map[(i+(mx-radius))%mx][j] != -1) {       correction=((int) map[(i+(mx-radius))%mx][j]); found = true; }
-      else if (map[(i+radius)%mx][j] != -1) {       correction=((int) map[(i+radius)%mx][j]);      found = true; }
-      else if (map[i][(j+radius)%my] != -1) {       correction=((int) map[i][(j+radius)%my]);      found = true; }
-      else if (map[i][(j+(my-radius))%my] != -1) {  correction=((int) map[i][(j+(my-radius))%my]); found = true; }
+      if (map[j][(i+(mx-radius))%mx] != -1) {       correction=((int) map[j][(i+(mx-radius))%mx]); found = true; }
+      else if (map[j][(i+radius)%mx] != -1) {       correction=((int) map[j][(i+radius)%mx]);      found = true; }
+      else if (map[(j+radius)%my][i] != -1) {       correction=((int) map[(j+radius)%my][i]);      found = true; }
+      else if (map[(j+(my-radius))%my][i] != -1) {  correction=((int) map[(j+(my-radius))%my][i]); found = true; }
       
       else { // Do the other points in the surrounding square,
                // starting with those nearest the cross.
         for (int r = 1; r < radius; r++) {
           if (!found) {
-            if (map[(i+(mx-radius))%mx][(j+r)%my] != -1)      {      correction=((int) map[(i+(mx-radius))%mx][(j+r)%my]);      found = true; } 
-            else if (map[(i+r)%mx][(j+radius)%my] != -1) {           correction=((int) map[(i+r)%mx][(j+radius)%my]);           found = true; } 
-            else if (map[(i+radius)%mx][(j+(my-r))%my] != -1) {      correction=((int) map[(i+radius)%mx][(j+(my-r))%my]);      found = true; } 
-            else if (map[(i+(mx-r))%mx][(j+(my-radius))%my] != -1) { correction=((int) map[(i+(mx-r))%mx][(j+(my-radius))%my]); found = true; } 
-            else if (map[(i+(mx-radius))%mx][(j+(my-r))%my] != -1) { correction=((int) map[(i+(mx-radius))%mx][(j+(my-r))%my]); found = true; } 
-            else if (map[(i+(mx-r))%mx][(j+radius)%my] != -1) {      correction=((int) map[(i+(mx-r))%mx][(j+radius)%my]);      found = true; } 
-            else if (map[(i+radius)%mx][(j+r)%my] != -1) {           correction=((int) map[(i+radius)%mx][(j+r)%my]);           found = true; } 
-            else if (map[(i+r)%mx][(j+(my-radius))%my] != -1) {      correction=((int) map[(i+r)%mx][(j+(my-radius))%my]);      found = true; }
+            if (map[(j+r)%my][(i+(mx-radius))%mx] != -1)      {      correction=((int) map[(j+r)%my][(i+(mx-radius))%mx]);      found = true; } 
+            else if (map[(j+radius)%my][(i+r)%mx] != -1) {           correction=((int) map[(j+radius)%my][(i+r)%mx]);           found = true; } 
+            else if (map[(j+(my-r))%my][(i+radius)%mx] != -1) {      correction=((int) map[(j+(my-r))%my][(i+radius)%mx]);      found = true; } 
+            else if (map[(j+(my-radius))%my][(i+(mx-r))%mx] != -1) { correction=((int) map[(j+(my-radius))%my][(i+(mx-r))%mx]); found = true; } 
+            else if (map[(j+(my-r))%my][(i+(mx-radius))%mx] != -1) { correction=((int) map[(j+(my-r))%my][(i+(mx-radius))%mx]); found = true; } 
+            else if (map[(j+radius)%my][(i+(mx-r))%mx] != -1) {      correction=((int) map[(j+radius)%my][(i+(mx-r))%mx]);      found = true; } 
+            else if (map[(j+r)%my][(i+radius)%mx] != -1) {           correction=((int) map[(j+r)%my][(i+radius)%mx]);           found = true; } 
+            else if (map[(j+(my-radius))%my][(i+r)%mx] != -1) {      correction=((int) map[(j+(my-radius))%my][(i+r)%mx]);      found = true; }
           }
         }
         if (!found) {
-          if (map[(i+(mx-radius))%mx][(j+radius)%my] != -1) {           correction=((int) map[(i+(mx-radius))%mx][(j+radius)%my]);      found = true; } 
-          else if (map[(i+radius)%mx][(j+(my-radius))%my] != -1) {      correction=((int) map[(i+radius)%mx][(j+(my-radius))%my]);      found = true; } 
-          else if (map[(i+radius)%mx][(j+radius)%my] != -1) {           correction=((int) map[(i+radius)%mx][(j+radius)%my]);           found = true; } 
-          else if (map[(i+(mx-radius))%mx][(j+(my-radius))%my] != -1) { correction=((int) map[(i+(mx-radius))%mx][(j+(my-radius))%my]); found = true; }  
+          if (map[(j+radius)%my][(i+(mx-radius))%mx] != -1) {           correction=((int) map[(j+radius)%my][(i+(mx-radius))%mx]);      found = true; } 
+          else if (map[(j+(my-radius))%my][(i+radius)%mx] != -1) {      correction=((int) map[(j+(my-radius))%my][(i+radius)%mx]);      found = true; } 
+          else if (map[(j+radius)%my][(i+radius)%mx] != -1) {           correction=((int) map[(j+radius)%my][(i+radius)%mx]);           found = true; } 
+          else if (map[(j+(my-radius))%my][(i+(mx-radius))%mx] != -1) { correction=((int) map[(j+(my-radius))%my][(i+(mx-radius))%mx]); found = true; }  
         }
       }
       radius++;
@@ -594,7 +598,7 @@ public class GlobalRasterTools {
    * 
    * @param  id           id of the unit for which to find centroid 
    * @param  pop_weighted true, if you want population-weighted centroid, false for "normalised population" weighted.
-   * @param  pop          rasterised population
+   * @param  pop          rasterised population [width][height] at present...
    * @return an array of three doubles: [0] longitude of centroid, [1] latitude of centroid, [2] The population, or the number of cells in the centroid, depending on pop_weighted.
    */ 
   public double[] getCentroid(int id, boolean pop_weighted, int[][] pop) {
@@ -609,7 +613,7 @@ public class GlobalRasterTools {
     int max_y = -1;
     for (int i = 0; i < WIDTH; i++) {
       for (int j = 0; j < HEIGHT; j++) {
-        if (map[i][j] == id) {
+        if (map[j][i] == id) {
           min_x = Math.min(min_x, i);
           max_x = Math.max(max_x, i);
           min_y = Math.min(min_y, j);
@@ -629,7 +633,7 @@ public class GlobalRasterTools {
       int pop_total = 0;
       int area_total = 0;
       for (int i = min_x; i <= max_x; i++) {
-        if ((map[i][j] == id) && (pop[i][j] > 0)) {
+        if ((map[j][i] == id) && (pop[i][j] > 0)) {
           pop_total += pop[i][j];
           grand_pop_total += pop[i][j];
           area_total++;
@@ -647,7 +651,7 @@ public class GlobalRasterTools {
       double total = (pop_weighted) ? (pop_total / 2) : (area_total / 2);
       
       for (int i = min_x; i <= max_x; i++) {
-        if ((map[i][j] == id) && (pop[i][j] > 0)) {
+        if ((map[j][i] == id) && (pop[i][j] > 0)) {
           int cell_weight = pop_weighted ? pop[i][j] : 1;
           if (total >= cell_weight) {
             total -= cell_weight;
@@ -698,16 +702,36 @@ public class GlobalRasterTools {
    * @param  file           the filename 
    * @throws Exception      if any exception occurs.
    */
-  public void loadMapFile(String file) throws Exception {
-    if (map==null) map = new int[WIDTH][HEIGHT];
+  public void loadMapFile2(String file) throws Exception {
+    long time = -System.currentTimeMillis();
+    if (map==null) map = new int[HEIGHT][WIDTH];
     DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream(new File(file))));
-    for (int j = 0; j < 21600; j++) {
-      for (int i = 0; i < 43200; i++) {
-        map[i][j] = dis.readInt();
+    for (int j = 0; j < HEIGHT; j++) {
+      for (int i = 0; i < WIDTH; i++) {
+        map[j][i] = dis.readInt();
       }
     }
     dis.close();
+    time+=System.currentTimeMillis();
+    System.out.println("Read time = "+time);
   }
+  
+  public void loadMapFile(String file) throws Exception {
+    long time = -System.currentTimeMillis();
+    if (map==null) map = new int[HEIGHT][WIDTH];
+    FileChannel fc = FileChannel.open(Paths.get(file));
+    for (int j = 0; j < HEIGHT; j++) {
+      MappedByteBuffer mbb = fc.map(MapMode.READ_ONLY, (long) (4L*j*WIDTH), WIDTH*4L);
+      for (int i = 0; i < WIDTH; i++) {
+        map[j][i] = mbb.getInt();
+      }
+      mbb.clear();
+    }
+    fc.close();
+    time+=System.currentTimeMillis();
+    System.out.println("Read time = "+time);
+  }
+  
   
   /**
    * Save the current raster map file
@@ -718,9 +742,9 @@ public class GlobalRasterTools {
    */
   public void saveMapFile(String file) throws Exception {
     DataOutputStream dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(new File(file))));
-    for (int j = 0; j < 21600; j++) {
-      for (int i = 0; i < 43200; i++) {
-        dos.writeInt(map[i][j]);
+    for (int j = 0; j < map.length; j++) {
+      for (int i = 0; i < map[j].length; i++) {
+        dos.writeInt(map[j][i]);
       }
     }
     dos.close();
