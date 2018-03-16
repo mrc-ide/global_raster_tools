@@ -58,6 +58,8 @@ public class HeatMap {
   String outgif = null;
   String mapfile = null;
   String unitfile = null;
+  String col_scheme = null;
+  String o_maxval = null;
   int frame_pause = 0;
   boolean loop = false;
   
@@ -106,10 +108,11 @@ public class HeatMap {
       }
       first_year = Math.min(first_year, Integer.parseInt(ss[year_column]));
       last_year = Math.max(last_year,  Integer.parseInt(ss[year_column]));
-      min_val = Math.min(min_val,  Integer.parseInt(ss[value_column]));
-      max_val = Math.max(max_val, Integer.parseInt(ss[value_column]));
+      min_val = Math.min(min_val,  Double.parseDouble(ss[value_column]));
+      max_val = Math.max(max_val, Double.parseDouble(ss[value_column]));
       ss = readLine(br);
     }
+    if (!o_maxval.equals("auto")) max_val=Double.parseDouble(o_maxval); 
     br.close();
     for (int i=0; i<data.length; i++) {
       data[i] = new double[1+(last_year-first_year)];
@@ -155,13 +158,17 @@ public class HeatMap {
 
   
   public static void main(String[] args) throws Exception {
-    if (args.length<5) {
-      System.out.println("Usage: java -Xmx8g HeatMap input.csv output.gif map.bin units.txt 500 true");
-      System.out.println("                    (500 = 500ms between frames");
-      System.out.println("                    (true = LOOP, false = DON'T LOOP)\n");
+    if (args.length<7) {
+      System.out.println("Usage: java -Xmx8g HeatMap input.csv output.gif map.bin units.txt 500 true jet auto");
+      System.out.println("                    500 = 500ms between frames");
+      System.out.println("                    true = LOOP, false = DON'T LOOP\n");
+      System.out.println("                    jet  = colour scheme. (blue, jet, purple)");
+      System.out.println("                    auto = auto max val. Otherwise specify (eg 50000)");
+      
       System.out.println("Input CSV must contain header, and columns");
       System.out.println(" (necessary)    country, year, value");
       System.out.println(" (optional)     outcome_code, scenario, modelling_group, disease");
+      
       System.exit(0);
     }
     
@@ -172,12 +179,29 @@ public class HeatMap {
     HM.unitfile = args[3];
     HM.frame_pause = Integer.parseInt(args[4]);
     HM.loop = Boolean.parseBoolean(args[5]);
+    HM.col_scheme = args[6];
+    HM.o_maxval = args[7];
     
     HM.run();
     System.exit(0);
   }
   
   public void initCols() {
+    if (col_scheme.toUpperCase().equals("BLUE")) initCols_Linear(0,0,32,128,128,255);
+    else if (col_scheme.toUpperCase().equals("JET")) initCols_Jet();
+    else if (col_scheme.toUpperCase().equals("PURPLE")) initCols_Linear(32,0,64,192,0,255);
+  }
+  
+  public void initCols_Linear(int r1,int g1,int b1,int r2,int g2,int b2) {
+    double frac;
+    for (int i=0; i<grads; i++) {
+      frac = (double)i/grads;
+      cols[i]=new Color((int)(r1+((r2-r1)*frac)),(int)(g1+((g2-g1)*frac)),(int)(b1+((b2-b1)*frac)));
+    }
+  }
+
+  
+  public void initCols_Jet() {
     double frac,part;
     for (int i=0; i<grads; i++) {
       frac = (double)i/grads;
@@ -206,7 +230,6 @@ public class HeatMap {
         cols[i]=new Color(255-(int) (128*part*10),0,0);
       } 
     }
-
   }
   
   public void run() throws Exception {
@@ -299,7 +322,12 @@ public class HeatMap {
       g.drawString(scenario, 1025, 900);
     }
     
-    if (outcome.length()>0) g.drawString(outcome, 235,725);
+    if (outcome.length()>0) {
+      String[] oo = outcome.split("\\s+");
+      for (int i=0; i<oo.length; i++) {
+        g.drawString(oo[i], 235,725+(50*i));
+      }
+    }
      
     for (int y=0; y<=500; y++) {
       g.setColor(cols[(int)(254.0*(1.0-(y/500.0)))]);
@@ -342,7 +370,10 @@ public class HeatMap {
         for (int j=0; j<h; j++) {
           if (pixmap[i][j]!=-1) {
             double val = data[pixmap[i][j]][year-first_year];
-            int col = cols[(int)Math.round(254.0*(val - min_val)/val_range)].getRGB();
+            int colr = (int)Math.round(254.0*(val - min_val)/val_range);
+            if (colr<0) colr=0;
+            if (colr>=cols.length) colr=cols.length-1;
+            int col = cols[colr].getRGB();
             png.setRGB(i,j,col);
           }
         }
