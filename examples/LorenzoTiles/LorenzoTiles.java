@@ -8,15 +8,15 @@ import java.io.PrintWriter;
 import com.mrc.GlobalRasterTools.GlobalRasterTools;
 
 public class LorenzoTiles {
-  static String outPath = "e:\\l2\\";
+  static String outPath = "e:\\l3\\";
   static String gadmPath = "E:\\Data\\Boundaries\\GADM2_8\\";
-  static String tilePath = "\\\\fi--didenas5\\dengue\\dengue_risk_mapping\\output\\env_variables\\tile_set_5_km\\";
+  static String tilePath = "\\\\fi--didenas5\\dengue\\dengue_risk_mapping\\output\\env_variables\\tile_set_2";
  
   public void convertTile(GlobalRasterTools GRT, File f) throws Exception {
     BufferedReader br = new BufferedReader(new FileReader(f));
     PrintWriter PW = new PrintWriter(new File(outPath + f.getName()));
     String s = br.readLine(); // header
-    PW.println(s + ",\"ADM_0\",\"ADM_1\",\"ADM_2\"");
+    PW.println(s + ",\"ID_0\",\"ID_1\",\"ID_2\"");
     s = br.readLine();
     while (s != null) {
       String[] bits = s.split(",");
