@@ -126,7 +126,7 @@ public class GlobalRasterTools {
    * @return The y-index of the pixel in which the latitude falls, where 0 is the Northern-most possible pixel.
    */
   static int getDefaultYForLat(double y) {
-    return (WIDTH-1) + (int) ((-90 - y) * RESOLUTION);
+    return (HEIGHT-1) + (int) ((-90 - y) * RESOLUTION);
   }
 
   
@@ -137,15 +137,15 @@ public class GlobalRasterTools {
   public void loadPolygonFolder(String folder, int max_level, List<String> countries) throws Exception {
     File[] fs = new File(folder).listFiles();
     for (int i = 0; i < fs.length; i++) {
-      if (fs[i].getName().indexOf("adm0.shp") > 0) {
+      if (fs[i].getName().indexOf("_0.shp") > 0) {
         // Find most detailed shapes, <= max_level
         int level = 0;
         String best = fs[i].getPath();
-        String search = best.replace("adm" + String.valueOf(level), "adm" + String.valueOf(1 + level));
+        String search = best.replace("_" + String.valueOf(level), "_" + String.valueOf(1 + level));
         while ((new File(search).exists()) && (level < max_level)) {
           best = search;
           level++;
-          search = best.replace("adm" + String.valueOf(level), "adm" + String.valueOf(1 + level));
+          search = best.replace("_" + String.valueOf(level), "_" + String.valueOf(1 + level));
         }
         
         System.out.println("Loading " + best);
@@ -266,6 +266,9 @@ public class GlobalRasterTools {
           
           for (int k=0; k<=level; k++) {
             if (f_names.get(j).trim().equals("ID_"+String.valueOf(k))) {
+              entry_nums[k]=utf_string.trim();
+            }
+            if (f_names.get(j).trim().equals("GID_"+String.valueOf(k))) {
               entry_nums[k]=utf_string.trim();
             }
             if (f_names.get(j).trim().equals("NAME_"+String.valueOf(k))) {
@@ -459,10 +462,12 @@ public class GlobalRasterTools {
       }
     }
 
+    System.out.println("Rasterising");
     for (int i = 0; i < unit_shapes.size(); i++) {
       System.out.println(i + "\t" + unit_names.get(i) + "\t" + unit_numbers.get(i));
       rasterisePoly(unit_shapes.get(i), map, contention_indexes, contentions, i, -1);
     }
+    System.out.println("Resolving contentions");
     resolveContentions(unit_shapes, map, contention_indexes, contentions);
     contentions.clear();
   }
