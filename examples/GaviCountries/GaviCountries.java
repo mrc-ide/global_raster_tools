@@ -31,8 +31,8 @@ public class GaviCountries {
       "Iraq", "Morocco", "Marshall Islands", "Philippines", "Paraguay", "Palestina", "El Salvador", "Swaziland",
       "Syria", "Turkmenistan", "Tonga", "Tunisia", "Tuvalu", "Vanuatu", "Samoa", "Kosovo" });
   
-  static String outPath = "e:\\tini\\";
-  static String gadmPath = "E:\\tini\\gadm\\";
+  static String outPath = "E:\\Jobs\\Tini-GaviCountries\\";
+  static String gadmPath = "E:\\Data\\Boundaries\\GADM3_6\\";
 
   
   public static void main(String[] args) throws Exception {
@@ -48,7 +48,7 @@ public class GaviCountries {
     GlobalRasterTools GRT = new GlobalRasterTools();
     if (!new File(gadmPath+"ZWE_adm2.shp").exists()) {
       System.out.println("Downloading GADM shapes...");
-      GRT.downloadShapeFiles(gadmPath);
+      GRT.downloadShapeFiles(gadmPath,"3.6");
     }
                                        
     GRT.loadPolygonFolder(gadmPath, 0, null);

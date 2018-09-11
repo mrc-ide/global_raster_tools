@@ -1,6 +1,8 @@
 package com.mrc.GlobalRasterTools;
 
 import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Polygon;
 import java.awt.Rectangle;
@@ -29,6 +31,16 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import javax.imageio.ImageIO;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.HostnameVerifier;
+import java.security.cert.X509Certificate;
+import java.security.SecureRandom;
+
 /**
  * This class contains a set of methods for handling rasteration of landscan-like population datasets, with ESRI
  * (GADM) Shapefiles, including rasterising with contention-handling, look-up, and finding centroids. It uses
@@ -47,6 +59,33 @@ public class GlobalRasterTools {
   public ArrayList<String> unit_numbers = new ArrayList<String>();
   public ArrayList<ArrayList<GlobalRasterTools.DPolygon>> unit_shapes = new ArrayList<ArrayList<GlobalRasterTools.DPolygon>>();
   public int[][] map = null;
+  
+  // GADM HTTPS certificate is not quite valid... Java doesn't like this. Hence:-
+  
+  private static void disableSslVerification() {
+    try {
+      // Create a trust manager that does not validate certificate chains
+      TrustManager[] trustAllCerts = new TrustManager[] {
+        new X509TrustManager() {
+          public X509Certificate[] getAcceptedIssuers() { return null; }
+          public void checkClientTrusted(X509Certificate[] certs, String authType) {}
+          public void checkServerTrusted(X509Certificate[] certs, String authType) {}
+        }
+      };
+
+      SSLContext sc = SSLContext.getInstance("SSL");
+      sc.init(null, trustAllCerts, new SecureRandom());
+      HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+
+      HostnameVerifier allHostsValid = new HostnameVerifier() {
+        public boolean verify(String hostname, SSLSession session) { return true; }
+      };
+      
+      HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+    } catch (Exception e) { e.printStackTrace(); }
+    
+  }
+  
   
   /**
    * The width of the global raster in pixels
@@ -68,7 +107,9 @@ public class GlobalRasterTools {
   
   
   
-  public GlobalRasterTools() {}
+  public GlobalRasterTools() {
+    disableSslVerification();
+  }
   
   
   /**
@@ -130,22 +171,27 @@ public class GlobalRasterTools {
   }
 
   
-  public void loadPolygonFolder(String folder, int max_level) throws Exception {
-    loadPolygonFolder(folder, max_level, null);
+  public void loadPolygonFolder(String folder, int max_level, String version) throws Exception {
+    loadPolygonFolder(folder, max_level, null, version);
   }
   
-  public void loadPolygonFolder(String folder, int max_level, List<String> countries) throws Exception {
+  public void loadPolygonFolder(String folder, int max_level, List<String> countries, String version) throws Exception {
     File[] fs = new File(folder).listFiles();
     for (int i = 0; i < fs.length; i++) {
-      if (fs[i].getName().indexOf("_0.shp") > 0) {
+      if (fs[i].getName().indexOf("0.shp") > 0) {
         // Find most detailed shapes, <= max_level
         int level = 0;
         String best = fs[i].getPath();
-        String search = best.replace("_" + String.valueOf(level), "_" + String.valueOf(1 + level));
+        String search = null;
+        if (version.equals("2.8")) search = best.replace("adm"+String.valueOf(level), "adm"+String.valueOf(1 + level));
+        else search = best.replace("_"+String.valueOf(level)+".", "_"+String.valueOf(1 + level)+".");
+        
         while ((new File(search).exists()) && (level < max_level)) {
           best = search;
           level++;
-          search = best.replace("_" + String.valueOf(level), "_" + String.valueOf(1 + level));
+          if (version.equals("2.8")) search = best.replace("adm" + String.valueOf(level), "adm" + String.valueOf(1 + level));
+          else search = best.replace("_"+level+".", "_"+String.valueOf(1 + level)+".");
+           
         }
         
         System.out.println("Loading " + best);
@@ -278,6 +324,17 @@ public class GlobalRasterTools {
               entry_names[k]=utf_string.trim();
             }
             
+          }
+          
+          // For DHS Level 1 shape file (IsaacTanzania)
+          
+          if (f_names.get(j).trim().equals("REGNAME")) {
+            entry_names[1]=utf_string.trim();
+            entry_names[0]="Tanzania";
+          } 
+          if (f_names.get(j).trim().equals("REGCODE")) {
+            entry_nums[1]=utf_string.trim();
+            entry_nums[0]="0";
           }
         } 
       }
@@ -542,38 +599,38 @@ public class GlobalRasterTools {
    * @param j
    * @return
    */
-  public int getNearest_ints(int i, int j) {
+  public int getNearest_ints(int[][] _map, int i, int j, int missing) {
     int correction=-1;
     int radius = 1;
     
-    int my=map.length;
-    int mx=map[0].length;
+    int my=_map.length;
+    int mx=_map[0].length;
     boolean found = false;
     while (!found) { // First do the cross shapes - nearest points.
-      if (map[j][(i+(mx-radius))%mx] != -1) {       correction=((int) map[j][(i+(mx-radius))%mx]); found = true; }
-      else if (map[j][(i+radius)%mx] != -1) {       correction=((int) map[j][(i+radius)%mx]);      found = true; }
-      else if (map[(j+radius)%my][i] != -1) {       correction=((int) map[(j+radius)%my][i]);      found = true; }
-      else if (map[(j+(my-radius))%my][i] != -1) {  correction=((int) map[(j+(my-radius))%my][i]); found = true; }
+      if (_map[j][(i+(mx-radius))%mx] != missing) {       correction=((int) _map[j][(i+(mx-radius))%mx]); found = true; }
+      else if (_map[j][(i+radius)%mx] != missing) {       correction=((int) _map[j][(i+radius)%mx]);      found = true; }
+      else if (_map[(j+radius)%my][i] != missing) {       correction=((int) _map[(j+radius)%my][i]);      found = true; }
+      else if (_map[(j+(my-radius))%my][i] != missing) {  correction=((int) _map[(j+(my-radius))%my][i]); found = true; }
       
       else { // Do the other points in the surrounding square,
                // starting with those nearest the cross.
         for (int r = 1; r < radius; r++) {
           if (!found) {
-            if (map[(j+r)%my][(i+(mx-radius))%mx] != -1)      {      correction=((int) map[(j+r)%my][(i+(mx-radius))%mx]);      found = true; } 
-            else if (map[(j+radius)%my][(i+r)%mx] != -1) {           correction=((int) map[(j+radius)%my][(i+r)%mx]);           found = true; } 
-            else if (map[(j+(my-r))%my][(i+radius)%mx] != -1) {      correction=((int) map[(j+(my-r))%my][(i+radius)%mx]);      found = true; } 
-            else if (map[(j+(my-radius))%my][(i+(mx-r))%mx] != -1) { correction=((int) map[(j+(my-radius))%my][(i+(mx-r))%mx]); found = true; } 
-            else if (map[(j+(my-r))%my][(i+(mx-radius))%mx] != -1) { correction=((int) map[(j+(my-r))%my][(i+(mx-radius))%mx]); found = true; } 
-            else if (map[(j+radius)%my][(i+(mx-r))%mx] != -1) {      correction=((int) map[(j+radius)%my][(i+(mx-r))%mx]);      found = true; } 
-            else if (map[(j+r)%my][(i+radius)%mx] != -1) {           correction=((int) map[(j+r)%my][(i+radius)%mx]);           found = true; } 
-            else if (map[(j+(my-radius))%my][(i+r)%mx] != -1) {      correction=((int) map[(j+(my-radius))%my][(i+r)%mx]);      found = true; }
+            if (_map[(j+r)%my][(i+(mx-radius))%mx] != missing)      {      correction=((int) _map[(j+r)%my][(i+(mx-radius))%mx]);      found = true; } 
+            else if (_map[(j+radius)%my][(i+r)%mx] != missing) {           correction=((int) _map[(j+radius)%my][(i+r)%mx]);           found = true; } 
+            else if (_map[(j+(my-r))%my][(i+radius)%mx] != missing) {      correction=((int) _map[(j+(my-r))%my][(i+radius)%mx]);      found = true; } 
+            else if (_map[(j+(my-radius))%my][(i+(mx-r))%mx] != missing) { correction=((int) _map[(j+(my-radius))%my][(i+(mx-r))%mx]); found = true; } 
+            else if (_map[(j+(my-r))%my][(i+(mx-radius))%mx] != missing) { correction=((int) _map[(j+(my-r))%my][(i+(mx-radius))%mx]); found = true; } 
+            else if (_map[(j+radius)%my][(i+(mx-r))%mx] != missing) {      correction=((int) _map[(j+radius)%my][(i+(mx-r))%mx]);      found = true; } 
+            else if (_map[(j+r)%my][(i+radius)%mx] != missing) {           correction=((int) _map[(j+r)%my][(i+radius)%mx]);           found = true; } 
+            else if (_map[(j+(my-radius))%my][(i+r)%mx] != missing) {      correction=((int) _map[(j+(my-radius))%my][(i+r)%mx]);      found = true; }
           }
         }
         if (!found) {
-          if (map[(j+radius)%my][(i+(mx-radius))%mx] != -1) {           correction=((int) map[(j+radius)%my][(i+(mx-radius))%mx]);      found = true; } 
-          else if (map[(j+(my-radius))%my][(i+radius)%mx] != -1) {      correction=((int) map[(j+(my-radius))%my][(i+radius)%mx]);      found = true; } 
-          else if (map[(j+radius)%my][(i+radius)%mx] != -1) {           correction=((int) map[(j+radius)%my][(i+radius)%mx]);           found = true; } 
-          else if (map[(j+(my-radius))%my][(i+(mx-radius))%mx] != -1) { correction=((int) map[(j+(my-radius))%my][(i+(mx-radius))%mx]); found = true; }  
+          if (_map[(j+radius)%my][(i+(mx-radius))%mx] != missing) {           correction=((int) _map[(j+radius)%my][(i+(mx-radius))%mx]);      found = true; } 
+          else if (_map[(j+(my-radius))%my][(i+radius)%mx] != missing) {      correction=((int) _map[(j+(my-radius))%my][(i+radius)%mx]);      found = true; } 
+          else if (_map[(j+radius)%my][(i+radius)%mx] != missing) {           correction=((int) _map[(j+radius)%my][(i+radius)%mx]);           found = true; } 
+          else if (_map[(j+(my-radius))%my][(i+(mx-radius))%mx] != missing) { correction=((int) _map[(j+(my-radius))%my][(i+(mx-radius))%mx]); found = true; }  
         }
       }
       radius++;
@@ -581,21 +638,133 @@ public class GlobalRasterTools {
     return correction;
   }
     
+  public int getNearest_ints(byte[][] _map, int i, int j, int missing) {
+    int correction=-1;
+    int radius = 1;
+    
+    int my=_map.length;
+    int mx=_map[0].length;
+    boolean found = false;
+    while (!found) { // First do the cross shapes - nearest points.
+      if (_map[j][(i+(mx-radius))%mx] != missing) {       correction=((int) _map[j][(i+(mx-radius))%mx]); found = true; }
+      else if (_map[j][(i+radius)%mx] != missing) {       correction=((int) _map[j][(i+radius)%mx]);      found = true; }
+      else if (_map[(j+radius)%my][i] != missing) {       correction=((int) _map[(j+radius)%my][i]);      found = true; }
+      else if (_map[(j+(my-radius))%my][i] != missing) {  correction=((int) _map[(j+(my-radius))%my][i]); found = true; }
+      
+      else { // Do the other points in the surrounding square,
+               // starting with those nearest the cross.
+        for (int r = 1; r < radius; r++) {
+          if (!found) {
+            if (_map[(j+r)%my][(i+(mx-radius))%mx] != missing)      {      correction=((int) _map[(j+r)%my][(i+(mx-radius))%mx]);      found = true; } 
+            else if (_map[(j+radius)%my][(i+r)%mx] != missing) {           correction=((int) _map[(j+radius)%my][(i+r)%mx]);           found = true; } 
+            else if (_map[(j+(my-r))%my][(i+radius)%mx] != missing) {      correction=((int) _map[(j+(my-r))%my][(i+radius)%mx]);      found = true; } 
+            else if (_map[(j+(my-radius))%my][(i+(mx-r))%mx] != missing) { correction=((int) _map[(j+(my-radius))%my][(i+(mx-r))%mx]); found = true; } 
+            else if (_map[(j+(my-r))%my][(i+(mx-radius))%mx] != missing) { correction=((int) _map[(j+(my-r))%my][(i+(mx-radius))%mx]); found = true; } 
+            else if (_map[(j+radius)%my][(i+(mx-r))%mx] != missing) {      correction=((int) _map[(j+radius)%my][(i+(mx-r))%mx]);      found = true; } 
+            else if (_map[(j+r)%my][(i+radius)%mx] != missing) {           correction=((int) _map[(j+r)%my][(i+radius)%mx]);           found = true; } 
+            else if (_map[(j+(my-radius))%my][(i+r)%mx] != missing) {      correction=((int) _map[(j+(my-radius))%my][(i+r)%mx]);      found = true; }
+          }
+        }
+        if (!found) {
+          if (_map[(j+radius)%my][(i+(mx-radius))%mx] != missing) {           correction=((int) _map[(j+radius)%my][(i+(mx-radius))%mx]);      found = true; } 
+          else if (_map[(j+(my-radius))%my][(i+radius)%mx] != missing) {      correction=((int) _map[(j+(my-radius))%my][(i+radius)%mx]);      found = true; } 
+          else if (_map[(j+radius)%my][(i+radius)%mx] != missing) {           correction=((int) _map[(j+radius)%my][(i+radius)%mx]);           found = true; } 
+          else if (_map[(j+(my-radius))%my][(i+(mx-radius))%mx] != missing) { correction=((int) _map[(j+(my-radius))%my][(i+(mx-radius))%mx]); found = true; }  
+        }
+      }
+      radius++;
+    }
+    return correction;
+  }
   /**
    * Find the nearest unit_id to a given longitude and latitude.
    * <p>
    * Use this when raster population data claims there are people in a certain pixel, yet no shapefile
    * contains that pixel. This is frequently the case on boundaries with coastlines.
    * 
+   * @param  _map       the 2-d array of ints
    * @param  lon       longitude 
    * @param  lat       latitude
    * @param  unit_ids  the rasterised array of ids.
    * @param  null_unit the id that represents "no unit here"
    * @return the id of the nearest non-null unit id
    */ 
-  public int getNearest(double lon, double lat) {
-    return getNearest_ints(getDefaultXForLon(lon), getDefaultYForLat(lat));
+  public int getNearest(int[][] _map, double lon, double lat, int missing) {
+    return getNearest_ints(_map, getDefaultXForLon(lon), getDefaultYForLat(lat), missing);
   }
+  
+  public int getNearest(double lon, double lat) {
+    return getNearest(map, lon, lat, -1);
+  }
+  
+  public int getNearest(int[][] _map, double lon, double lat) {
+    return getNearest(_map, lon, lat, -1);
+  }
+  
+  public int getNearest(double lon, double lat, int missing) {
+    return getNearest(map, lon, lat, missing);
+  }
+  
+
+  /**
+   * Calculate the region in a map where "non-zero" elements occur.
+   * <p>
+   * 
+   * @param  data          rasterised data [width][height] at present...
+   * @param empty_val      what value means data absent
+   * @return an array of three four: [0,1] min/max x index, [2,3] min/max y index.
+   */ 
+  
+  public int[] getGlobalExtent(int[][] data, int empty_val) {
+    int[] result = new int[4];
+    result[0]=-1; result[1]=-1; result[2]=-1; result[3]=-1;
+
+    // Find top
+    
+    for (int j=0; j<data.length; j++) {
+      for (int i=0; i<data[j].length; i++) {
+        if (data[j][i]!=empty_val) {
+          result[2]=j;
+          j=data.length-1;
+          i=data[j].length;
+        }
+      }
+    }
+    // Find bottom
+    for (int j=data.length-1; j>=0; j--) {
+      for (int i=0; i<data[j].length; i++) {
+        if (data[j][i]!=empty_val) {
+          result[3]=j;
+          j=0;
+          i=data[j].length;
+        }
+      }
+    }
+    // Find left:
+    for (int i=0; i<data[0].length; i++) {
+      for (int j=result[2]; j<=result[3]; j++) {
+        if (data[j][i]!=empty_val) {
+          result[0]=i;
+          i=data[0].length;
+          j=result[3];
+        }
+      }
+    }
+    // Find right
+    for (int i=data[0].length-1; i>=0; i--) {
+      for (int j=result[2]; j<=result[3]; j++) {
+        if (data[j][i]!=empty_val) {
+          result[1]=i;
+          i=0;
+          j=result[3];
+        }
+      }
+    }
+    
+    return result;
+  }
+  
+  
   
   /**
    * Calculate the centroid, either population-weighted or not, of a unit.
@@ -707,20 +876,6 @@ public class GlobalRasterTools {
    * @param  file           the filename 
    * @throws Exception      if any exception occurs.
    */
-  public void loadMapFile2(String file) throws Exception {
-    long time = -System.currentTimeMillis();
-    if (map==null) map = new int[HEIGHT][WIDTH];
-    DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream(new File(file))));
-    for (int j = 0; j < HEIGHT; j++) {
-      for (int i = 0; i < WIDTH; i++) {
-        map[j][i] = dis.readInt();
-      }
-    }
-    dis.close();
-    time+=System.currentTimeMillis();
-    System.out.println("Read time = "+time);
-  }
-  
   public void loadMapFile(String file) throws Exception {
     long time = -System.currentTimeMillis();
     if (map==null) map = new int[HEIGHT][WIDTH];
@@ -735,6 +890,46 @@ public class GlobalRasterTools {
     fc.close();
     time+=System.currentTimeMillis();
     System.out.println("Read time = "+time);
+  }
+  
+  /**
+   * Load a previously saved raster map file
+   * <p>
+   * 
+   * @param  file           the filename 
+   * @throws Exception      if any exception occurs.
+   */
+  public int[][] loadIntGrid(String file, int dwid, int dhei, int fwid, int fhei, int off_x, int off_y) throws Exception {
+    long time = -System.currentTimeMillis();
+    int[][] ls = new int[dhei][dwid];
+    FileChannel fc = FileChannel.open(Paths.get(file));
+    for (int j = 0; j < fhei; j++) {
+      MappedByteBuffer mbb = fc.map(MapMode.READ_ONLY, (long) (4L*j*fwid), fwid*4L);
+      for (int i = 0; i < fwid; i++) {
+        ls[off_y+j][off_x+i] = (int) Float.intBitsToFloat(Integer.reverseBytes(Float.floatToRawIntBits(mbb.getFloat())));
+      }
+      mbb.clear();
+    }
+    fc.close();
+    time+=System.currentTimeMillis();
+    System.out.println("Read time = "+time);
+    return ls;
+  }
+  public float[][] loadFloatGrid(String file, int dwid, int dhei, int fwid, int fhei,int off_x, int off_y) throws Exception {
+    long time = -System.currentTimeMillis();
+    float[][] ls = new float[dhei][dwid];
+    FileChannel fc = FileChannel.open(Paths.get(file));
+    for (int j = 0; j < fhei; j++) {
+      MappedByteBuffer mbb = fc.map(MapMode.READ_ONLY, (long) (4L*j*fwid), fwid*4L);
+      for (int i = 0; i < fwid; i++) {
+        ls[j+off_y][i+off_x] = Float.intBitsToFloat(Integer.reverseBytes(Float.floatToRawIntBits(mbb.getFloat())));
+      }
+      mbb.clear();
+    }
+    fc.close();
+    time+=System.currentTimeMillis();
+    System.out.println("Read time = "+time);
+    return ls;
   }
   
   
@@ -894,27 +1089,46 @@ public class GlobalRasterTools {
    * @param  folder         folder to download into 
    * @throws Exception      if any exception occurs.
    */
-  public void downloadShapeFiles(String folder) throws Exception {
+  public void downloadShapeFiles(String folder, String version) throws Exception {
     // Utility code, to download the full set of shapefiles from GADM.
-      
-    String url = "http://www.gadm.org/country";
-    String web = "http://biogeo.ucdavis.edu/data/gadm2.8/shp/";
+    String url = null;
+    String web = null;
+    if (version.equals("2.8")) {
+      url = "https://www.gadm.org/download_country_v2.html";
+      web = "https://biogeo.ucdavis.edu/data/gadm2.8/shp/";
+    } else if (version.equals("3.6")) {
+      url = "https://www.gadm.org/download_country_v3.html";
+      web = "https://biogeo.ucdavis.edu/data/gadm3.6/shp/gadm36_";
+    }
+    
     BufferedReader in = new BufferedReader(new InputStreamReader(new URL(url).openStream()));
     String s=in.readLine();
     String code;
     while (s!=null) {
-      if (s.trim().equals("<select name=\"cnt\">")) {
+      s = s.trim();
+      if (s.contains("<select class=\"form-control\" id=\"countrySelect\"")) {
         s = in.readLine();
         while (s.indexOf("</select>")==-1) {
           if (s.trim().length()>0) {
             s = s.substring(s.indexOf("\"")+1);
             s = s.substring(0,s.indexOf("\""));
-            code = s.substring(0,3);
-            saveUrl(folder+code+".zip",web+code+"_adm_shp.zip");
-            int lev=0;
-            while (extractFromZip(folder+code+".zip",
-                new String[] {code+"_adm"+lev+".shp",code+"_adm"+lev+".dbf"}, folder)) lev++;
-            new File(folder+code+".zip").delete();
+            if (s.length()>0) {
+              code = s.substring(0,3);
+              if (version.equals("2.8")) {
+                saveUrl(folder+code+".zip",web+code+"_adm_shp.zip");
+              } else if (version.equals("3.6")) {
+                saveUrl(folder+code+".zip",web+code+"_shp.zip");
+              }
+              int lev=0;
+              if (version.equals("2.8")) {
+                while (extractFromZip(folder+code+".zip",
+                  new String[] {code+"_adm"+lev+".shp",code+"_adm"+lev+".dbf"}, folder)) lev++;
+              } else if (version.equals("3.6")) {
+                while (extractFromZip(folder+code+".zip",
+                    new String[] {"gadm36_"+code+"_"+lev+".shp","gadm36_"+code+"_"+lev+".dbf"}, folder)) lev++;
+              }
+              new File(folder+code+".zip").delete();
+            }
           }
           s = in.readLine();
         }
@@ -923,4 +1137,165 @@ public class GlobalRasterTools {
     }
   }
    
+  /**
+   * Create a vibrantly coloured PNG showing current shape files loaded.
+   * <p>
+   * 
+   * @param  map            The map of admin unit ids
+   * @param  pngfile        The output file 
+   * @param  extents        Array of min/max x, min/max y, to select.
+   * @param  highlight      If >=0, highlight this unit
+   * @param  title          Add a title.
+   * @throws Exception      if any exception occurs.
+   */
+  public void hideousShapePNG(int[][] map, String pngfile, int[] extents, int highlight, String title) throws Exception {
+    if ((extents[0]==-1) || (extents[1]==-1) || (extents[2]==-1) || (extents[3]==-1)) {
+      System.out.println("Nothing to plot");
+    } else {
+      int WID = (extents[1]-extents[0])+1;
+      int HEI = (extents[3]-extents[2])+1;
+      if (title!=null) HEI+=50;
+      BufferedImage bi = new BufferedImage(WID,HEI,BufferedImage.TYPE_3BYTE_BGR);
+      int black = Color.black.getRGB();
+      for (int i=0; i<WID; i++) for (int j=0; j<HEI; j++) bi.setRGB(i, j, black);
+      if (title!=null) {
+        title = title.replace("\t",  ", ");
+        Graphics g = bi.getGraphics();
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial",Font.BOLD,42));
+        g.drawString(title, 20,  HEI-20);
+      }
+      ArrayList<Integer> cols = new ArrayList<Integer>();
+      for (int i=extents[0]; i<=extents[1]; i++) {
+        for (int j=extents[2]; j<=extents[3]; j++) {
+          if (map[j][i]>=0) {
+            while (cols.size()<=map[j][i]) {
+              if (highlight==-1) {
+                cols.add(new Color((int)(Math.random()*255), (int)(Math.random()*255), (int)(Math.random()*255)).getRGB());
+              } else if (highlight==cols.size()) {
+                cols.add(new Color(255,255,255).getRGB());
+              } else {
+                cols.add(new Color((int)(Math.random()*128), (int)(Math.random()*128), (int)(Math.random()*128)).getRGB());
+              } 
+            }
+            bi.setRGB(i-extents[0], j-extents[2], cols.get(map[j][i]));
+          }
+        }
+      }
+      ImageIO.write(bi,  "PNG",  new File(pngfile));
+    }
+  }
+  
+  /**
+   * Create a spatial colour map of (eg) population density.
+   * <p>
+   * 
+   * @param  map            Map data
+   * @param  pop            Pop data
+   * @param  pngfile        The output file 
+   * @param  extents        Array of min/max x, min/max y, to select.
+   * @throws Exception      if any exception occurs.
+   */
+  public void spatialMap(int[][] map, int[][] pop, String pngfile, int[] extents, int missing, boolean log_scale, boolean invert) throws Exception {
+    if ((extents[0]==-1) || (extents[1]==-1) || (extents[2]==-1) || (extents[3]==-1)) {
+      System.out.println("Nothing to plot");
+    } else {
+      int WID = (extents[1]-extents[0])+1;
+      int HEI = (extents[3]-extents[2])+1;
+      BufferedImage bi = new BufferedImage(WID,HEI,BufferedImage.TYPE_3BYTE_BGR);
+      int black = Color.black.getRGB();
+      for (int i=0; i<WID; i++) for (int j=0; j<HEI; j++) bi.setRGB(i, j, black);
+      double max=0;
+      for (int i=extents[0]; i<=extents[1]; i++) {
+        for (int j=extents[2]; j<=extents[3]; j++) {
+          if ((map[j][i]>=0) && (pop[j][i]>max) && (pop[j][i]!=missing)) max=pop[j][i];
+        }
+      }
+      if (log_scale) max = Math.log(max);
+      int[] cols = new int[256];
+      for (int i=0; i<256; i++)
+        cols[i] = new Color(i,i,i).getRGB();
+      
+      for (int i=extents[0]; i<=extents[1]; i++) {
+        for (int j=extents[2]; j<=extents[3]; j++) {
+          if ((map[j][i]>=0) && (pop[j][i]>0)) {
+            double val = pop[j][i];
+            if (invert) val = max - val;
+            if (log_scale) {
+              bi.setRGB(i-extents[0], j-extents[2], cols[(int) (255.0*(Math.log(val)/max))]);
+            } else {
+              bi.setRGB(i-extents[0], j-extents[2], cols[(int) (255.0*(val/max))]);
+            } 
+          }
+        }
+      }
+      ImageIO.write(bi,  "PNG",  new File(pngfile));
+    }
+  }
+  
+  public void spatialMap(int[][] map, float[][] pop, String pngfile, int[] extents, float missing, boolean log_scale, boolean invert) throws Exception {
+    if ((extents[0]==-1) || (extents[1]==-1) || (extents[2]==-1) || (extents[3]==-1)) {
+      System.out.println("Nothing to plot");
+    } else {
+      int WID = (extents[1]-extents[0])+1;
+      int HEI = (extents[3]-extents[2])+1;
+      BufferedImage bi = new BufferedImage(WID,HEI,BufferedImage.TYPE_3BYTE_BGR);
+      int black = Color.black.getRGB();
+      for (int i=0; i<WID; i++) for (int j=0; j<HEI; j++) bi.setRGB(i, j, black);
+      double max=0;
+      for (int i=extents[0]; i<=extents[1]; i++) {
+        for (int j=extents[2]; j<=extents[3]; j++) {
+          if ((map[j][i]>=0) && (pop[j][i]>max) & (pop[j][i]!=missing)) max=pop[j][i];
+        }
+      }
+      if (log_scale) max = Math.log(max);
+      int[] cols = new int[256];
+      for (int i=0; i<256; i++)
+        cols[i] = new Color(i,i,i).getRGB();
+      
+      for (int i=extents[0]; i<=extents[1]; i++) {
+        for (int j=extents[2]; j<=extents[3]; j++) {
+          if ((map[j][i]>=0) && (pop[j][i]>0) && (pop[j][i]!=missing)) {
+            double val = pop[j][i];
+            if (invert) val=max-val;
+            if (log_scale) {
+              bi.setRGB(i-extents[0], j-extents[2], cols[(int) (255.0*(Math.log(val)/max))]);
+            } else {
+              bi.setRGB(i-extents[0], j-extents[2], cols[(int) (255.0*(val/max))]);
+            }
+          }
+        }
+      }
+      ImageIO.write(bi,  "PNG",  new File(pngfile));
+    }
+  }
+  
+  public void modisMap(int[][] map, byte[][] grid, String pngfile, int[] extents) throws Exception {
+    if ((extents[0]==-1) || (extents[1]==-1) || (extents[2]==-1) || (extents[3]==-1)) {
+      System.out.println("Nothing to plot");
+    } else {
+      int WID = (extents[1]-extents[0])+1;
+      int HEI = (extents[3]-extents[2])+1;
+      BufferedImage bi = new BufferedImage(WID,HEI,BufferedImage.TYPE_3BYTE_BGR);
+      int black = Color.black.getRGB();
+      for (int i=0; i<WID; i++) for (int j=0; j<HEI; j++) bi.setRGB(i, j, black);
+      int[] cols = new int[] {
+          Color.black.getRGB(), new Color(0,128,0).getRGB(), new Color(0,160,0).getRGB(), new Color(0,192,0).getRGB(), new Color(128,192,0).getRGB(),
+          new Color(128,192,128).getRGB(), new Color(192,255,128).getRGB(), new Color(128,255,192).getRGB(), new Color(207,245,14).getRGB(), 
+          new Color(254,191,40).getRGB(), new Color(192,255,192).getRGB(), new Color(141,244,245).getRGB(), new Color(255,255,0).getRGB(), 
+          new Color(255,32,32).getRGB(), new Color(239,164,244).getRGB(), new Color(192,192,192).getRGB(), new Color(141,54,7).getRGB(), 
+          new Color(32,32,255).getRGB()
+         
+      };
+      
+      for (int i=extents[0]; i<=extents[1]; i++) {
+        for (int j=extents[2]; j<=extents[3]; j++) {
+          if ((map[j/2][i/2]>=0) && (grid[j][i]>=0) && (grid[j][i]>=0) && (grid[j][i]<=17)) {
+            bi.setRGB(i-extents[0], j-extents[2], cols[grid[j][i]]);
+          }
+        }
+      }
+      ImageIO.write(bi,  "PNG",  new File(pngfile));
+    }
+  }
 }

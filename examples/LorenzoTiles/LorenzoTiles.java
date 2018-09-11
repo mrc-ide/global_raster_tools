@@ -8,10 +8,12 @@ import java.io.PrintWriter;
 import com.mrc.GlobalRasterTools.GlobalRasterTools;
 
 public class LorenzoTiles {
-  static String outPath = "e:\\l3\\";
-  static String gadmPath = "E:\\Data\\Boundaries\\GADM2_8\\";
-  static String tilePath = "\\\\fi--didenas5\\dengue\\dengue_risk_mapping\\output\\env_variables\\tile_set_2";
- 
+  //static String outPath = "\\\\fi--didenas5\\dengue\\dengue_risk_mapping\\output\\env_variables\\tile_set_2_20km\\gadm\\";
+  static String outPath = "E:\\Jobs\\Lorenzo\\";
+  static String gadmPath = "E:\\Data\\Boundaries\\GADM3_6\\";
+  //static String tilePath = "\\\\fi--didenas5\\dengue\\dengue_risk_mapping\\output\\env_variables\\tile_set_2\\";
+  static String tilePath = "\\\\fi--didenas5\\dengue\\dengue_risk_mapping\\output\\env_variables\\tile_set_2_20km\\";
+  
   public void convertTile(GlobalRasterTools GRT, File f) throws Exception {
     BufferedReader br = new BufferedReader(new FileReader(f));
     PrintWriter PW = new PrintWriter(new File(outPath + f.getName()));
@@ -85,8 +87,8 @@ public class LorenzoTiles {
   public void run(String[] args) throws Exception {
     GlobalRasterTools GRT = new GlobalRasterTools();
     
-    if (!new File(gadmPath+"ZWE_adm2.shp").exists()) GRT.downloadShapeFiles(gadmPath);
-    GRT.loadPolygonFolder(gadmPath, 2);
+    if (!new File(gadmPath+"ZWE_adm2.shp").exists()) GRT.downloadShapeFiles(gadmPath, "2.8");
+    GRT.loadPolygonFolder(gadmPath, 2, "2.8");
     
     if (!new File(outPath+"map.bin").exists()) {
       GRT.makeMap();
