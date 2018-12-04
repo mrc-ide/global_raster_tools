@@ -26,20 +26,21 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import javax.imageio.ImageIO;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.HostnameVerifier;
-import java.security.cert.X509Certificate;
-import java.security.SecureRandom;
 
 /**
  * This class contains a set of methods for handling rasteration of landscan-like population datasets, with ESRI
@@ -959,6 +960,12 @@ public class GlobalRasterTools {
    */
   public void saveUnits(String file) throws Exception {
     PrintWriter PW = new PrintWriter(new File(file));
+    PW.print("ID\t");
+    
+    for (int i = 0; i < unit_names.get(0).split("\t").length; i++) PW.print("N"+i+"\t");
+    for (int i = 0; i < unit_numbers.get(0).split("\t").length; i++) PW.print("C"+i+"\t");
+    PW.println("");
+    
     for (int i = 0; i < unit_numbers.size(); i++) {
       PW.println(i + "\t" + unit_names.get(i) + "\t" + unit_numbers.get(i));
     }
@@ -977,28 +984,34 @@ public class GlobalRasterTools {
     unit_numbers.clear();
     unit_names.clear();
     String s = br.readLine();
+    ArrayList<String> header = new ArrayList<String>(Arrays.asList(s.split("\t")));
+    s = br.readLine();
+    byte[] c = new byte[6];
+    byte[] n = new byte[6];
+    for (byte i=0; i<5; i++) { c[i] = (byte) header.indexOf("C"+i); n[i] = (byte) header.indexOf("N"+i); }
+    
     int max_level = ((s.split("\t").length-1) / 2) - 1;
     while (s!=null) {
       if (s.length()>5) {
         String[] bits = s.split("\t");
         if (max_level==0) {
-          unit_names.add(bits[1]);
-          unit_numbers.add(bits[2]);
+          unit_names.add(bits[n[0]]);
+          unit_numbers.add(bits[c[0]]);
         } else if (max_level==1) {
-          unit_names.add(bits[1]+"\t"+bits[2]);
-          unit_numbers.add(bits[3]+"\t"+bits[4]);
+          unit_names.add(bits[n[0]]+"\t"+bits[n[1]]);
+          unit_numbers.add(bits[c[0]]+"\t"+bits[c[1]]);
         } else if (max_level==2) {
-          unit_names.add(bits[1]+"\t"+bits[2]+"\t"+bits[3]);
-          unit_numbers.add(bits[4]+"\t"+bits[5]+"\t"+bits[6]);
+          unit_names.add(bits[n[0]]+"\t"+bits[n[1]]+"\t"+bits[n[2]]);
+          unit_numbers.add(bits[c[0]]+"\t"+bits[c[1]]+"\t"+bits[c[2]]);
         } else if (max_level==3) {
-          unit_names.add(bits[1]+"\t"+bits[2]+"\t"+bits[3]+"\t"+bits[4]);
-          unit_numbers.add(bits[5]+"\t"+bits[6]+"\t"+bits[7]+"\t"+bits[8]);
+          unit_names.add(bits[n[0]]+"\t"+bits[n[1]]+"\t"+bits[n[2]]+"\t"+bits[n[3]]);
+          unit_numbers.add(bits[c[0]]+"\t"+bits[c[1]]+"\t"+bits[c[2]]+"\t"+bits[c[3]]);
         } else if (max_level==4) {
-          unit_names.add(bits[1]+"\t"+bits[2]+"\t"+bits[3]+"\t"+bits[4]+"\t"+bits[5]);
-          unit_numbers.add(bits[6]+"\t"+bits[7]+"\t"+bits[8]+"\t"+bits[9]+"\t"+bits[10]);
+          unit_names.add(bits[n[0]]+"\t"+bits[n[1]]+"\t"+bits[n[2]]+"\t"+bits[n[3]]+"\t"+bits[n[4]]);
+          unit_numbers.add(bits[c[0]]+"\t"+bits[c[1]]+"\t"+bits[c[2]]+"\t"+bits[c[3]]+"\t"+bits[c[4]]);
         } else if (max_level==5) {
-          unit_names.add(bits[1]+"\t"+bits[2]+"\t"+bits[3]+"\t"+bits[4]+"\t"+bits[5]+"\t"+bits[6]);
-          unit_numbers.add(bits[7]+"\t"+bits[8]+"\t"+bits[9]+"\t"+bits[10]+"\t"+bits[11]+"\t"+bits[12]);
+          unit_names.add(bits[n[0]]+"\t"+bits[n[1]]+"\t"+bits[n[2]]+"\t"+bits[n[3]]+"\t"+bits[n[4]]+"\t"+bits[n[5]]);
+          unit_numbers.add(bits[c[0]]+"\t"+bits[c[1]]+"\t"+bits[c[2]]+"\t"+bits[c[3]]+"\t"+bits[c[4]]+"\t"+bits[c[5]]);
         }
       }
       s = br.readLine();

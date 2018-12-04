@@ -87,8 +87,8 @@ public class LorenzoTiles {
   public void run(String[] args) throws Exception {
     GlobalRasterTools GRT = new GlobalRasterTools();
     
-    if (!new File(gadmPath+"ZWE_adm2.shp").exists()) GRT.downloadShapeFiles(gadmPath, "2.8");
-    GRT.loadPolygonFolder(gadmPath, 2, "2.8");
+    if (!new File(gadmPath+"gadm36_ZWE_2.shp").exists()) GRT.downloadShapeFiles(gadmPath, "3.6");
+    GRT.loadPolygonFolder(gadmPath, 2, "3.6");
     
     if (!new File(outPath+"map.bin").exists()) {
       GRT.makeMap();
@@ -98,6 +98,7 @@ public class LorenzoTiles {
       GRT.loadUnits(outPath+"units.txt");
       GRT.loadMapFile(outPath+"map.bin");
     }
+    System.exit(0);
     
     if (args.length == 0) {
       convertAllTiles(GRT);
