@@ -1,4 +1,4 @@
-package examples.HeatMap;
+package jobs.e5_HeatMap;
 
 import java.awt.Color;
 import java.awt.Font;
@@ -16,6 +16,7 @@ import javax.imageio.ImageIO;
 import javax.imageio.stream.FileImageOutputStream;
 import javax.imageio.stream.ImageOutputStream;
 
+import com.mrc.GifSequenceWriter.GifSequenceWriter;
 import com.mrc.GlobalRasterTools.GlobalRasterTools;
 
 public class HeatMap {

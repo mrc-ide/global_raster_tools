@@ -1,4 +1,4 @@
-package examples.HeatMap;
+package com.mrc.GifSequenceWriter;
 
 // 
 //  GifSequenceWriter.java

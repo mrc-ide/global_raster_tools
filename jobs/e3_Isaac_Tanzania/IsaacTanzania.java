@@ -1,4 +1,4 @@
-package examples.IsaacTanzania;
+package jobs.e3_Isaac_Tanzania;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;

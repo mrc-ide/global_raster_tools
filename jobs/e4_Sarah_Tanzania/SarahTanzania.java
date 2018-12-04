@@ -1,4 +1,4 @@
-package examples.SarahTanzania;
+package jobs.e4_Sarah_Tanzania;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
