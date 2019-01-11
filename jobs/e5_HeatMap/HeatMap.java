@@ -4,7 +4,6 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
-import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
@@ -146,17 +145,6 @@ public class HeatMap {
   }
   
   public HeatMap() {}
-  
-  public void niceGraphics(Graphics2D gg) {
-    gg.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-    gg.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-    gg.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-    gg.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-    gg.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-    gg.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY);
-    gg.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL,RenderingHints.VALUE_STROKE_NORMALIZE);
-  }
-
   
   public static void main(String[] args) throws Exception {
     if (args.length<7) {
@@ -304,7 +292,7 @@ public class HeatMap {
     }
     
     Graphics2D g = (Graphics2D) png.createGraphics();
-    niceGraphics(g);
+    GRT.niceGraphics(g);
     Font f = new Font("Calibri", Font.PLAIN, 48);
     g.setFont(f);
     g.setColor(Color.BLACK);
@@ -360,7 +348,7 @@ public class HeatMap {
         png = ImageIO.read(new File("back.png"));
         g.dispose();
         g = (Graphics2D) png.createGraphics();
-        niceGraphics(g);
+        GRT.niceGraphics(g);
       }
       f = new Font("Calibri", Font.BOLD, 64);
       g.setFont(f);

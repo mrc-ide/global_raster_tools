@@ -177,7 +177,23 @@ public class VaccMovie {
     if (col_scheme.toUpperCase().equals("BLUE")) initCols_Linear(0,0,32,128,128,255);
     else if (col_scheme.toUpperCase().equals("JET")) initCols_Jet();
     else if (col_scheme.toUpperCase().equals("PURPLE")) initCols_Linear(32,0,64,192,0,255);
+    else if (col_scheme.toUpperCase().equals("YF")) initCols_YF();
   }
+  
+  public void initCols_YF() {
+    double frac;
+    int[] r = new int[] {254,249,228,198,162,120,77,47,23,0,0};
+    int[] g = new int[] {254,253,244,231,215,198,176,147,121,97,69};
+    int[] b = new int[] {228,195,171,154,137,121,99,77,62,52,41};
+    for (int i=0; i<grads; i++) {
+      frac = (double)i/grads;
+      int i1 = (int) (frac*10);
+      double mfrac = 10*(frac-(i1/10.0));
+      cols[i]=new Color((int)(r[i1]+((r[i1+1]-r[i1])*mfrac)),(int)(g[i1]+((g[i1+1]-g[i1])*mfrac)),(int)(b[i1]+((b[i1+1]-b[i1])*mfrac)));
+    }
+  }
+
+
   
   public void initCols_Linear(int r1,int g1,int b1,int r2,int g2,int b2) {
     double frac;
@@ -330,11 +346,17 @@ public class VaccMovie {
     for (int y = 0; y <= 500; y += 100) {
       g.drawLine(95, y + 450, 105,y + 450);
       double v = min_val+((1.0-(y / 500.0))*val_range);
-      int iv = (int) (Math.round(v));
-      g.drawString(String.valueOf(iv), 120, y + 462);
+      float iv = (float) (Math.round(v*100)/100.0);
+      String ivs = String.valueOf(iv);
+      if (ivs.indexOf(".")==ivs.length()-2) ivs+="0";
+      g.drawString(ivs, 120, y + 462);
 
     }
-     
+    g.setFont(new Font("Calibri", Font.PLAIN, 48));
+    g.drawString("Expected number", 220, 750);
+    g.drawString("of vaccines",  220, 825);
+    g.drawString("per child", 220, 900);
+    
     ImageIO.write(png, "PNG", new File("back.png"));
     
     // Save animated gif...
@@ -367,6 +389,7 @@ public class VaccMovie {
           }
         }
       }
+      ImageIO.write(png, "PNG",  new File("out"+year+".png"));
       writer.writeToSequence(png);
     }
     writer.close();

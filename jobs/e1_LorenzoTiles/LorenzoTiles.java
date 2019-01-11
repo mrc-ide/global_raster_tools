@@ -24,8 +24,8 @@ public class LorenzoTiles {
       String[] bits = s.split(",");
       double lat = Double.parseDouble(bits[1]);
       double lon = Double.parseDouble(bits[2]);
-      int px = (int) ((180.0 + lon) * GlobalRasterTools.RESOLUTION);
-      int py = (int) ((90.0 - lat) * GlobalRasterTools.RESOLUTION);
+      int px = (int) ((180.0 + lon) * 120.0);
+      int py = (int) ((90.0 - lat) * 120.0);
       if ((px < 0) || (py < 0)) {
         System.out.println("lon=" + lon + ", lat=" + lat);
       }

@@ -2,10 +2,6 @@ package jobs.e6_Pop_Africa_2016;
 
 import java.io.File;
 import java.io.PrintWriter;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileChannel.MapMode;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 
 import com.mrc.GlobalRasterTools.GlobalRasterTools;
@@ -59,14 +55,14 @@ public class create_pop_africa {
         "Sudan", "Swaziland", "Tanzania", "Togo", "Tunisia", "Uganda",
         "WesternSahara", "Zambia", "Zimbabwe" };
     
-
+/*
     String[] iso3 = new String[] { "DZA", "AGO", "BEN", "BWA", "BFA", "BDI",
         "CMR", "CAF", "TCD", "COG", "CIV", "DJI", "COD", "EGY", "GNQ", "ERI",
         "ETH", "GAB", "GMB", "GHA", "GIN", "GNB", "KEN", "LSO", "LBR", "LBY",
         "MWI", "MLI", "MRT", "MAR", "MOZ", "NAM", "NER", "NGA", "RWA", "SEN",
         "SLE", "SOM", "ZAF", "SSD", "SDN", "SWZ", "TZA", "TGO", "TUN", "UGA",
         "ESH", "ZMB", "ZWE" };
-    
+  */  
     // Compute a Mask for African countries.
     
     System.out.println("Creating Africa Mask");
@@ -116,16 +112,8 @@ public class create_pop_africa {
     }
     PW.close();
     System.out.println("Loading landscan");
-    float[][] landscan = new float[21600][43200];
-    FileChannel fc = FileChannel.open(Paths.get(landscanPath+"lspop.flt"));
-    for (int j=0; j<21600; j++) {
-      MappedByteBuffer mbb = fc.map(MapMode.READ_ONLY, (long) (4L*j*43200L), 43200L*4L);
-      for (int i = 0; i <43200; i++) {
-        landscan[j][i] = Float.intBitsToFloat(Integer.reverseBytes(Float.floatToRawIntBits(mbb.getFloat())));
-      }
-      mbb.clear();
-    }
-    fc.close();
+    float[][] landscan = GRT.loadFloatGrid(landscanPath+"lspop.flt", 43200,21600, 43200,21600, 0, 0);
+    
     System.out.println("Writing");
     PW = new PrintWriter(outPath+"popAfrica.txt");
     String s;

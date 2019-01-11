@@ -6,6 +6,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Polygon;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -91,22 +92,55 @@ public class GlobalRasterTools {
   /**
    * The width of the global raster in pixels
    */
-  public static final int WIDTH = 43200;
+  private int WIDTH = 43200;
+  public int getWidth() { return WIDTH; }
+  public void setWidth(int w) { WIDTH = w; LON_ER = LON_WL + (WIDTH / RESOLUTION); }
   /**
    * The height of the global raster in pixels
    */
-  public static final int HEIGHT = 21600;
+  private int HEIGHT = 21600;
+  public int getHeight() { return HEIGHT; }
+  public void setHeight(int h) { HEIGHT = h; LAT_NT = LAT_SB - (HEIGHT / RESOLUTION); }
+
   /**
    * The expected resolution of population data in pixels per degree.
    */
-  public static final double RESOLUTION = 120.0;
+  private double RESOLUTION = 120.0;
+  public double getResolution() { return RESOLUTION; }
+  public void setResolution(double r) { RESOLUTION = r; LON_ER = LON_WL + (WIDTH / RESOLUTION); LAT_NT = LAT_SB - (HEIGHT / RESOLUTION); }
+
   /**
    * The internal resolution used for rasterising polygons in pixels per degree. This is used partly to reduce the size of really detailed polygons to something
    * more manageable, and also is the resolution used for resolving contention, where the shape with the most area is assumed to "own" that pixel.
    */
-  public static final int INT_SCALER = 2400;
+  private int INT_SCALER = 2400;
+  public double getIntScale() { return INT_SCALER; }
+  public void setIntScale(int i) { INT_SCALER = i; }
+
   
+  /**
+   * Western-most point (west-side of western-most co-ordinate) in this image
+   */
+
+  private double LON_WL = -180.0;
+  @SuppressWarnings("unused")
+  private double LON_ER = +180.0;
+  public double getLonWL() { return LON_WL; }
+  public void setLonWL(double d) { LON_WL = d; LON_ER = LON_WL + (WIDTH / RESOLUTION); }
   
+
+  /**
+   * Southern-most point (south-side of southern-most co-ordinate) in this image
+   */
+
+  private double LAT_SB = -90.0;
+  private double LAT_NT = 90.0;
+
+  public double getLatSB() { return LAT_SB; }
+  public double setLatNT() { return LAT_NT; }
+  public void setLatNT(double d) { LAT_NT = d; LAT_SB = LAT_NT - (HEIGHT / RESOLUTION); }
+  public void setLatSB(double d) { LAT_SB = d; LAT_NT = LAT_SB + (HEIGHT / RESOLUTION); }
+
   
   public GlobalRasterTools() {
     disableSslVerification();
@@ -149,15 +183,15 @@ public class GlobalRasterTools {
   }
   
   /**
-   * Convert longitude into a pixel number. where 0 is the pixel starting at -180 degrees.
+   * Convert longitude into a pixel number. where 0 is the pixel starting at LON_SLL degrees.
    * <p>
    *
    * @param  x    Longitude
-   * @return The x-index of the pixel in which the longitude falls, where 0 is the pixel with left-boundary -180 degrees.
+   * @return The x-index of the pixel in which the longitude falls, where 0 is the pixel with left-boundary LON_SLL degrees.
    */
   
-  static int getDefaultXForLon(double x) {
-    return (int) Math.floor((x + 180) * RESOLUTION);
+  int getDefaultXForLon(double x) {
+    return (int) Math.floor((x - LON_WL) * RESOLUTION);
   }
 
   /**
@@ -167,8 +201,8 @@ public class GlobalRasterTools {
    * @param  y    Latitude
    * @return The y-index of the pixel in which the latitude falls, where 0 is the Northern-most possible pixel.
    */
-  static int getDefaultYForLat(double y) {
-    return (HEIGHT-1) + (int) ((-90 - y) * RESOLUTION);
+  int getDefaultYForLat(double y) {
+    return (HEIGHT-1) + (int) ((LAT_SB - y) * RESOLUTION);
   }
 
   
@@ -439,10 +473,10 @@ public class GlobalRasterTools {
     }
     
     // Find bounds of this shape first.
-    int maxx = -999;
-    int maxy = -999;
-    int minx = 50000;
-    int miny = 50000;
+    int maxx = Integer.MIN_VALUE;
+    int maxy = Integer.MIN_VALUE;
+    int minx = Integer.MAX_VALUE;
+    int miny = Integer.MAX_VALUE;
     int black = Color.black.getRGB();
     g2d.setColor(Color.WHITE);
     for (int i = 0; i < polys.size(); i++) {
@@ -450,8 +484,8 @@ public class GlobalRasterTools {
       if (p.clockwise) {
         DPolygon p2 = new DPolygon();
         for (int j = 0; j < p.npoints; j++) {
-          p2.addPoint((int)((180.0 + ((double)p.xpoints[j] / INT_SCALER)) * RESOLUTION),
-                      (int)((90.0  - ((double)p.ypoints[j] / INT_SCALER)) * RESOLUTION));
+          p2.addPoint((int)((-LON_WL + ((double)p.xpoints[j] / INT_SCALER)) * RESOLUTION),
+                      (int)((LAT_NT - ((double)p.ypoints[j] / INT_SCALER)) * RESOLUTION));
           minx = Math.min(minx, p2.xpoints[p2.npoints-1]);
           maxx = Math.max(maxx, p2.xpoints[p2.npoints-1]);
           miny = Math.min(miny, p2.ypoints[p2.npoints-1]);
@@ -467,8 +501,8 @@ public class GlobalRasterTools {
       if (!p.clockwise) {
         DPolygon p2 = new DPolygon();
         for (int j=0; j<p.npoints; j++) {
-          p2.addPoint((int)((180.0 + ((double)p.xpoints[j] / INT_SCALER)) * RESOLUTION),
-                      (int)((90.0 -  ((double)p.ypoints[j] / INT_SCALER)) * RESOLUTION));
+          p2.addPoint((int)((-LON_WL + ((double)p.xpoints[j] / INT_SCALER)) * RESOLUTION),
+                      (int)((LAT_NT -  ((double)p.ypoints[j] / INT_SCALER)) * RESOLUTION));
           minx=Math.min(minx, p2.xpoints[p2.npoints-1]);
           maxx=Math.max(maxx, p2.xpoints[p2.npoints-1]);
           miny=Math.min(miny, p2.ypoints[p2.npoints-1]);
@@ -545,8 +579,8 @@ public class GlobalRasterTools {
     for (int j = 0; j < HEIGHT; j++) {
       for (int i = 0; i < WIDTH; i++) {
         if (contention_indexes[j][i]>=0) {
-          int xleft = (int) (((i / RESOLUTION) - 180.0) * INT_SCALER);
-          int ybottom = (int) (((((WIDTH-1) - j) / RESOLUTION) - 90) * INT_SCALER);
+          int xleft = (int) (((i / RESOLUTION) + LON_WL) * INT_SCALER);
+          int ybottom = (int) (((((WIDTH-1) - j) / RESOLUTION) - LAT_NT) * INT_SCALER);
           int ytop = (int) (ybottom - (INT_SCALER / RESOLUTION));
           int rectsize = (int) (INT_SCALER / RESOLUTION);
           cell.setBounds(xleft, ytop, rectsize, rectsize);
@@ -1311,4 +1345,17 @@ public class GlobalRasterTools {
       ImageIO.write(bi,  "PNG",  new File(pngfile));
     }
   }
+  
+  public void niceGraphics(Graphics2D gg) {
+    gg.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    gg.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+    gg.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+    gg.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+    gg.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+    gg.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY);
+    gg.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL,RenderingHints.VALUE_STROKE_NORMALIZE);
+  }
+  
+  
+
 }
