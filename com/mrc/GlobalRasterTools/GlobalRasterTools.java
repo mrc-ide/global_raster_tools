@@ -349,16 +349,15 @@ public class GlobalRasterTools {
             if (f_names.get(j).trim().equals("ID_"+String.valueOf(k))) {
               entry_nums[k]=utf_string.trim();
             }
-            if (f_names.get(j).trim().equals("GID_"+String.valueOf(k))) {
+            else if (f_names.get(j).trim().equals("GID_"+String.valueOf(k))) {
               entry_nums[k]=utf_string.trim();
             }
-            if (f_names.get(j).trim().equals("NAME_"+String.valueOf(k))) {
+            else if (f_names.get(j).trim().equals("NAME_"+String.valueOf(k))) {
               entry_names[k]=utf_string.trim();
             }
-            if (f_names.get(j).trim().equals("NAME_ENGLI") && (k==0)) {
+            else if (f_names.get(j).trim().equals("NAME_ENGLI") && (k==0)) {
               entry_names[k]=utf_string.trim();
             }
-            
           }
           
           // For DHS Level 1 shape file (IsaacTanzania)
@@ -370,6 +369,34 @@ public class GlobalRasterTools {
           if (f_names.get(j).trim().equals("REGCODE")) {
             entry_nums[1]=utf_string.trim();
             entry_nums[0]="0";
+          }
+          
+          // For DRC health unit (Gemma-DRC)
+          
+          if (f_names.get(j).trim().equals("Area")) {
+            entry_names[5]=utf_string.trim();
+            entry_names[0]="DRC";
+          }
+          
+          if (f_names.get(j).trim().equals("Code_DHIS2")) {
+            entry_names[4]=utf_string.trim();
+            entry_names[0]="DRC";
+          }
+          
+          if (f_names.get(j).trim().equals("Nom")) {
+            entry_names[3]=utf_string.trim();
+            entry_names[0]="DRC";
+          }
+          if (f_names.get(j).trim().equals("TERRITOIRE")) {
+            entry_names[2]=utf_string.trim();
+            entry_names[0]="DRC";
+          }
+          if (f_names.get(j).trim().equals("PROVINCE")) {
+            entry_names[1]=utf_string.trim();
+            entry_names[0]="DRC";
+          } else if (f_names.get(j).trim().equals("ZSName")) {
+            entry_names[1]=utf_string.trim();
+            entry_names[0]="DRC";
           }
         } 
       }
@@ -745,7 +772,7 @@ public class GlobalRasterTools {
    * Calculate the region in a map where "non-zero" elements occur.
    * <p>
    * 
-   * @param  data          rasterised data [width][height] at present...
+   * @param  data          rasterised data [height][width] 
    * @param empty_val      what value means data absent
    * @return an array of three four: [0,1] min/max x index, [2,3] min/max y index.
    */ 
@@ -807,29 +834,38 @@ public class GlobalRasterTools {
    * 
    * @param  id           id of the unit for which to find centroid 
    * @param  pop_weighted true, if you want population-weighted centroid, false for "normalised population" weighted.
-   * @param  pop          rasterised population [width][height] at present...
+   * @param  pop          rasterised population [height][width]
+   * @param  extents      if not null, the extents of the map to search. (ie, narrow down to certain limits)
    * @return an array of three doubles: [0] longitude of centroid, [1] latitude of centroid, [2] The population, or the number of cells in the centroid, depending on pop_weighted.
    */ 
-  public double[] getCentroid(int id, boolean pop_weighted, int[][] pop) {
+  public double[] getCentroid(int id, boolean pop_weighted, int[][] pop, int[] extents) {
     
     double[] final_result = new double[3]; // Return longitude and latitude.
     
     // First, find extents of this admin code.
+    boolean found=false;
+    if (extents==null) {
+      extents = new int[] {0, WIDTH, 0, HEIGHT};
+    }
+      
+    int min_x = 1 + extents[1];
+    int max_x = extents[0] - 1;
+    int min_y = 1 + extents[3];
+    int max_y = extents[2] - 1;
     
-    int min_x = WIDTH + 1;
-    int max_x = -1;
-    int min_y = HEIGHT + 1;
-    int max_y = -1;
-    for (int i = 0; i < WIDTH; i++) {
-      for (int j = 0; j < HEIGHT; j++) {
+    for (int i = extents[0]; i < extents[1]; i++) {
+      for (int j = extents[2]; j < extents[3]; j++) {
         if (map[j][i] == id) {
           min_x = Math.min(min_x, i);
           max_x = Math.max(max_x, i);
           min_y = Math.min(min_y, j);
           max_y = Math.max(max_y, j);
+          found=true;
         }
       }
     }
+    
+    if (!found) { return null; }
 
     // Now calculate totals of population and area.
     
@@ -842,9 +878,9 @@ public class GlobalRasterTools {
       int pop_total = 0;
       int area_total = 0;
       for (int i = min_x; i <= max_x; i++) {
-        if ((map[j][i] == id) && (pop[i][j] > 0)) {
-          pop_total += pop[i][j];
-          grand_pop_total += pop[i][j];
+        if ((map[j][i] == id) && (pop[j][i] > 0)) {
+          pop_total += pop[j][i];
+          grand_pop_total += pop[j][i];
           area_total++;
           grand_area_total++;
         }
@@ -860,13 +896,13 @@ public class GlobalRasterTools {
       double total = (pop_weighted) ? (pop_total / 2) : (area_total / 2);
       
       for (int i = min_x; i <= max_x; i++) {
-        if ((map[j][i] == id) && (pop[i][j] > 0)) {
-          int cell_weight = pop_weighted ? pop[i][j] : 1;
+        if ((map[j][i] == id) && (pop[j][i] > 0)) {
+          int cell_weight = pop_weighted ? pop[j][i] : 1;
           if (total >= cell_weight) {
             total -= cell_weight;
           } else {
             double xpos = i;
-            if (pop_weighted) xpos += (total / pop[i][j]);
+            if (pop_weighted) xpos += (total / pop[j][i]);
             else xpos += total; // Either total = 0 or 0.5 for area weighted.
             longitudes.add(-180 + (xpos / RESOLUTION)); // Linear interpolate between pixels.
             int[] iresult = new int[3];
@@ -881,7 +917,7 @@ public class GlobalRasterTools {
       // So we've now added (lon,lat,pop_total_on_line,area_total_of_line) to the POINTS array. 
     }
     
-    // And we now have a list of points which present the mid-pont of each line.
+    // And we now have a list of points which present the mid-point of each line.
     // Half way down this line will be the mid-point of the shape.
     
     double remember_total = (pop_weighted) ? (grand_pop_total / 2) : (grand_area_total / 2);
@@ -1238,79 +1274,97 @@ public class GlobalRasterTools {
    * <p>
    * 
    * @param  map            Map data
-   * @param  pop            Pop data
+   * @param  pop            Pop data - could be int[][] or float[][]
    * @param  pngfile        The output file 
    * @param  extents        Array of min/max x, min/max y, to select.
+   * @param _missing        The value to treat as "missing" from the data - same type as the elements in pop.
+   * @param log_scale       Boolean for logging values before plotting - excluding zero.
+   * @param invert          Do we want the scale inverted.
+   * @param zero            The colour used for zero values (useful with the log plot). (null if not wanted)
+   * @param cols            Array of colours to use for plotting
+   * params force_max       Allow forced maximum. (null for auto-detect). Useful for plotting multiple maps with same colours scale. 
    * @throws Exception      if any exception occurs.
    */
-  public void spatialMap(int[][] map, int[][] pop, String pngfile, int[] extents, int missing, boolean log_scale, boolean invert) throws Exception {
-    if ((extents[0]==-1) || (extents[1]==-1) || (extents[2]==-1) || (extents[3]==-1)) {
-      System.out.println("Nothing to plot");
-    } else {
-      int WID = (extents[1]-extents[0])+1;
-      int HEI = (extents[3]-extents[2])+1;
-      BufferedImage bi = new BufferedImage(WID,HEI,BufferedImage.TYPE_3BYTE_BGR);
-      int black = Color.black.getRGB();
-      for (int i=0; i<WID; i++) for (int j=0; j<HEI; j++) bi.setRGB(i, j, black);
-      double max=0;
-      for (int i=extents[0]; i<=extents[1]; i++) {
-        for (int j=extents[2]; j<=extents[3]; j++) {
-          if ((map[j][i]>=0) && (pop[j][i]>max) && (pop[j][i]!=missing)) max=pop[j][i];
-        }
-      }
-      if (log_scale) max = Math.log(max);
-      int[] cols = new int[256];
-      for (int i=0; i<256; i++)
-        cols[i] = new Color(i,i,i).getRGB();
-      
-      for (int i=extents[0]; i<=extents[1]; i++) {
-        for (int j=extents[2]; j<=extents[3]; j++) {
-          if ((map[j][i]>=0) && (pop[j][i]>0)) {
-            double val = pop[j][i];
-            if (invert) val = max - val;
-            if (log_scale) {
-              bi.setRGB(i-extents[0], j-extents[2], cols[(int) (255.0*(Math.log(val)/max))]);
-            } else {
-              bi.setRGB(i-extents[0], j-extents[2], cols[(int) (255.0*(val/max))]);
-            } 
-          }
-        }
-      }
-      ImageIO.write(bi,  "PNG",  new File(pngfile));
+  public void spatialMap(int[][] map, Object _pop, String pngfile, int[] extents, Object _missing, boolean log_scale, boolean invert,
+                         Color zero, Color[] cols, Float force_max) throws Exception {
+    
+    int[][] ipop = null;
+    float[][] fpop = null;
+    
+    int imissing = 0;
+    float fmissing = 0;
+    
+    
+    if (_pop instanceof int[][]) {
+      ipop = (int[][]) _pop;
+      imissing = ((Integer)_missing).intValue();
+    
+    } else if (_pop instanceof float[][]) {
+      fpop = (float[][]) _pop;
+      fmissing = ((Float)_missing).floatValue();
     }
-  }
-  
-  public void spatialMap(int[][] map, float[][] pop, String pngfile, int[] extents, float missing, boolean log_scale, boolean invert) throws Exception {
+    
+    if (cols==null) {
+      cols = new Color[256];
+      for (int i=0; i<256; i++)
+        cols[i] = new Color(i,i,i);
+    }
+    
+    int[] icols = new int[cols.length];
+    for (int i=0; i<icols.length; i++) {
+      icols[i] = cols[i].getRGB();
+    }
+    
+    if (zero == null) zero = cols[0];
+    
     if ((extents[0]==-1) || (extents[1]==-1) || (extents[2]==-1) || (extents[3]==-1)) {
       System.out.println("Nothing to plot");
     } else {
+      double max=0;
+      int zero_int = zero.getRGB();
       int WID = (extents[1]-extents[0])+1;
       int HEI = (extents[3]-extents[2])+1;
       BufferedImage bi = new BufferedImage(WID,HEI,BufferedImage.TYPE_3BYTE_BGR);
       int black = Color.black.getRGB();
-      for (int i=0; i<WID; i++) for (int j=0; j<HEI; j++) bi.setRGB(i, j, black);
-      double max=0;
-      for (int i=extents[0]; i<=extents[1]; i++) {
-        for (int j=extents[2]; j<=extents[3]; j++) {
-          if ((map[j][i]>=0) && (pop[j][i]>max) & (pop[j][i]!=missing)) max=pop[j][i];
-        }
-      }
-      if (log_scale) max = Math.log(max);
-      int[] cols = new int[256];
-      for (int i=0; i<256; i++)
-        cols[i] = new Color(i,i,i).getRGB();
       
-      for (int i=extents[0]; i<=extents[1]; i++) {
-        for (int j=extents[2]; j<=extents[3]; j++) {
-          if ((map[j][i]>=0) && (pop[j][i]>0) && (pop[j][i]!=missing)) {
-            double val = pop[j][i];
-            if (invert) val=max-val;
-            if (log_scale) {
-              bi.setRGB(i-extents[0], j-extents[2], cols[(int) (255.0*(Math.log(val)/max))]);
+      if (force_max==null) {
+        for (int i=0; i<WID; i++) for (int j=0; j<HEI; j++) bi.setRGB(i, j, black);
+        for (int i=extents[0]; i<=extents[1]; i++) {
+          for (int j=extents[2]; j<=extents[3]; j++) {
+            if (ipop!=null) {
+              if ((map[j][i]>=0) && (ipop[j][i]>max) && (ipop[j][i]!=imissing)) max=ipop[j][i];
             } else {
-              bi.setRGB(i-extents[0], j-extents[2], cols[(int) (255.0*(val/max))]);
+              if ((map[j][i]>=0) && (fpop[j][i]>max) && (fpop[j][i]!=fmissing)) max=fpop[j][i];
             }
           }
+        }
+      } else max = (double) force_max.floatValue();
+    
+      if (log_scale) max = Math.log(max);
+      
+      for (int i=extents[0]; i<=extents[1]; i++) {
+        for (int j=extents[2]; j<=extents[3]; j++) {
+          int ii = i - extents[0];
+          int jj = j - extents[2];
+          if (map[j][i]>=0) {
+            boolean pop_zero = false;
+            double val = 0;
+            if (ipop!=null) {
+              val = ipop[j][i];
+              pop_zero = (ipop[j][i]==0);
+            }
+            else if (fpop!=null) {
+              val = fpop[j][i];
+              pop_zero = (fpop[j][i]==0);
+            }
+            if (pop_zero) {
+              bi.setRGB(ii, jj, zero_int);
+            } else {
+              if (log_scale) val = Math.log(val);
+              if (invert) val = max - val;
+              bi.setRGB(ii, jj, icols[(int) (255.0*(val/max))]);
+            }  
+          } else bi.setRGB(ii, jj, 0);
         }
       }
       ImageIO.write(bi,  "PNG",  new File(pngfile));

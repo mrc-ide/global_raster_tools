@@ -17,8 +17,8 @@ public class SarahTanzania {
   //final static String landscan = "\\\\fi--didef3\\Census\\Landscan2016\\lspop.flt";
   //final static String landscan = "\\\\fi--didef3\\Census\\Landscan2015\\lspop2015.flt";
   //final static String landscan = "\\\\fi--didef3\\Census\\Landscan2014\\Population\\lspop2014.flt";
-  final static String landscan = "\\\\fi--didef3\\Census\\\\\\LandScan2011_Global\\RasterGISbinary\\lspop2011.flt";
-  final static String year = "2011";
+  final static String landscan = "E:/Data/Census/Landscan2017/lspop.flt";
+  final static String year = "2017";
   final static String modis_landcover = "\\\\fi--didenas3\\Dengue\\Data\\MODIS\\MCD12Q1.006\\"+year+".01.01\\";
   
   public void append_data(String file, String field, float[][] more_data, int[] extents) throws Exception {
@@ -64,7 +64,7 @@ public class SarahTanzania {
     // For 2011 or earlier
     int[][] lscan = GRT.loadIntGrid(landscan, 43200, 21600, 43200, 20880, 0, 720);
     System.out.println("Making a picture of Landscan data");
-    GRT.spatialMap(GRT.map, lscan, outPath+"ls.png", extents, -9999, true, false);
+    GRT.spatialMap(GRT.map, lscan, outPath+"ls.png", extents, -9999, true, false, null, null, null);
     PrintWriter PW = new PrintWriter(outPath+"spatial_data.csv");
     PW.println("Lon,Lat,id,pop");
     for (int j=extents[2]; j<=extents[3]; j++) {

@@ -58,7 +58,7 @@ public class IsaacTanzania {
     System.out.println("Loading landscan");
     int[][] ls2016 = GRT.loadIntGrid(landscan,43200,21600,43200,21600,0,0);
     System.out.println("Making a picture of Landscan data");
-    GRT.spatialMap(GRT.map, ls2016, outPath+"ls.png", extents, -9999, true, false);
+    GRT.spatialMap(GRT.map, ls2016, outPath+"ls.png", extents, -9999, true, false,null,null,null);
     PrintWriter PW = new PrintWriter(outPath+"spatial_data.csv");
     PW.println("Lot,Lat,id,pop");
     for (int j=extents[2]; j<=extents[3]; j++) {
@@ -73,12 +73,12 @@ public class IsaacTanzania {
     // Add poverty data
     
     float[][] more_data = GRT.loadFloatGrid(dataPath+"tza_pov_125.bil",  43200, 21600, 2401, 3001, 24600, 9600);
-    GRT.spatialMap(GRT.map, more_data, outPath+"pov_125.png", extents, -3.4e38f, false, true);
+    GRT.spatialMap(GRT.map, more_data, outPath+"pov_125.png", extents, -3.4e38f, false, true, null, null, null);
     append_data(outPath+"spatial_data.csv","pov_125",more_data, extents);
     more_data=null;
     System.gc();
     more_data = GRT.loadFloatGrid(dataPath+"tza_pov_200.bil",  43200, 21600, 2401, 3001, 24600, 9600);
-    GRT.spatialMap(GRT.map, more_data, outPath+"pov_200.png", extents, -3.4e38f, false, true);
+    GRT.spatialMap(GRT.map, more_data, outPath+"pov_200.png", extents, -3.4e38f, false, true, null, null, null);
     append_data(outPath+"spatial_data.csv","pov_200",more_data, extents);
     more_data=null;
     System.gc();

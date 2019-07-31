@@ -59,12 +59,14 @@ public class Movie {
                   bis[id].setRGB(i, j, cols[new Color(bis[id].getRGB(i,j)).getRed()]);
                 
                 } else if (col_mode=='c') {
-                  if (frame.getRGB(i, j)!=GREEN) {
+                  Color c = new Color(frame.getRGB(i, j));
+                  if ((c.getGreen()<250) || (c.getRed()>5)) {
                     bis[id].setRGB(i, j, RED);
                   }
                 
                 } else if (col_mode=='i') {
-                  if (frame.getRGB(i, j)!=GREEN) {
+                  Color c = new Color(frame.getRGB(i, j));
+                  if ((c.getGreen()<250) || (c.getRed()>5)) {
                     bis[id].setRGB(i, j, cols[new Color(bis[id].getRGB(i,j)).getRed()]);
                   }
                 
