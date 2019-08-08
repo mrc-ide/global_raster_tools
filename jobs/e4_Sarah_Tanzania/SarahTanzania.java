@@ -1,14 +1,16 @@
 package jobs.e4_Sarah_Tanzania;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.DataInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.PrintWriter;
 
 import com.mrc.GlobalRasterTools.GlobalRasterTools;
+
+import ucar.ma2.ArrayByte;
+import ucar.nc2.NetcdfFile;
+import ucar.nc2.Variable;
+import ucar.nc2.dataset.NetcdfDataset;
 
 public class SarahTanzania {
   final static String outPath = "e:\\Jobs\\SarahTanzania\\output\\";
@@ -18,7 +20,7 @@ public class SarahTanzania {
   //final static String landscan = "\\\\fi--didef3\\Census\\Landscan2015\\lspop2015.flt";
   //final static String landscan = "\\\\fi--didef3\\Census\\Landscan2014\\Population\\lspop2014.flt";
   final static String landscan = "E:/Data/Census/Landscan2017/lspop.flt";
-  final static String year = "2017";
+  final static String year = "2018";
   final static String modis_landcover = "\\\\fi--didenas3\\Dengue\\Data\\MODIS\\MCD12Q1.006\\"+year+".01.01\\";
   
   public void append_data(String file, String field, float[][] more_data, int[] extents) throws Exception {
@@ -42,7 +44,7 @@ public class SarahTanzania {
    
     GlobalRasterTools GRT = new GlobalRasterTools();
     
-    GRT.loadPolygonFolder(gadmPath, 2, "2.8");
+    GRT.loadPolygonFolder(gadmPath, 2, "3.6");
     
     if (!new File(outPath+"map.bin").exists()) {
       GRT.makeMap();
@@ -55,7 +57,7 @@ public class SarahTanzania {
 
     /* Make some hideous shape images */
     System.out.println("Making hideous images");
-    int[] extents = GRT.getGlobalExtent(GRT.map, -1);
+    int[] extents = GRT.getGlobalExtent(GRT.map, 0, Integer.MAX_VALUE);
     for (int i=0; i<GRT.unit_names.size(); i++) {
       GRT.hideousShapePNG(GRT.map, outPath+"shapes_"+i+".png", extents, i, i+": "+GRT.unit_names.get(i));
     }
@@ -85,13 +87,17 @@ public class SarahTanzania {
       String hh = ((h<10)?"0":"")+h;
       for (int v=0; v<18; v++) {
         String vv = ((v<10)?"0":"")+v;
-        File f = new File(modis_landcover+"MCD12Q1.A"+year+"001.h"+hh+"v"+vv+".006_lct1.bin");
-        if (f.exists()) {
+        String f = modis_landcover+"MCD12Q1.A"+year+"001.h"+hh+"v"+vv+".006.hdf";
+        
+        if (new File(f).exists()) {
           System.out.println("Loading tile "+f);
-          DataInputStream dis = new DataInputStream(new BufferedInputStream(new FileInputStream(f)));
+          NetcdfFile ncfile = NetcdfDataset.openFile(f, null);
+          Variable LCT1 = ncfile.findVariable("MCD12Q1/Data_Fields/LC_Type1");
+          ArrayByte.D2 data = (ArrayByte.D2) LCT1.read();
+          
           for (int j=0; j<2400; j++) {
             for (int i=0; i<2400; i++) {
-              c = dis.readByte();
+              c = data.get(j,i);
               if (c!=-1) {
                 vd = v + (j+0.5)/2400;
                 hd = h + (i+0.5)/2400;
@@ -102,7 +108,7 @@ public class SarahTanzania {
               }
             }
           }
-          dis.close();
+          ncfile.close();
         }
       }
     }

@@ -25,7 +25,7 @@ public class Work {
     GlobalRasterTools GRT = new GlobalRasterTools();
     System.out.println("Loading map mask");
     GRT.loadMapFile(outputPath+"/DRC.bin");
-    int[] extents = GRT.getGlobalExtent(GRT.map,  -1);
+    int[] extents = GRT.getGlobalExtent(GRT.map,  0, Integer.MAX_VALUE);
     
     int xrange = 1+(extents[1]-extents[0]);
     int yrange = 1+(extents[3]-extents[2]);

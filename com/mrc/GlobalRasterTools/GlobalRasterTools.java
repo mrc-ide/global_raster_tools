@@ -358,6 +358,12 @@ public class GlobalRasterTools {
             else if (f_names.get(j).trim().equals("NAME_ENGLI") && (k==0)) {
               entry_names[k]=utf_string.trim();
             }
+            else if (f_names.get(j).trim().equals("ADM"+String.valueOf(k)+"_NAME")) {
+              entry_names[k]=utf_string.trim();
+            }
+            else if (f_names.get(j).trim().equals("ADM"+String.valueOf(k)+"_CODE")) {
+              entry_nums[k]=utf_string.trim();
+            }
           }
           
           // For DHS Level 1 shape file (IsaacTanzania)
@@ -462,6 +468,9 @@ public class GlobalRasterTools {
                                          // y-axis is inverted.
             
             polys.add(dpoly);
+          }
+          if (entry_names[0].equals("Colombia")) {
+            System.out.println("XTOP");
           }
           if ((countries==null) || (countries.contains(entry_names[0]))) { 
             unit_shapes.add(polys);
@@ -773,19 +782,20 @@ public class GlobalRasterTools {
    * <p>
    * 
    * @param  data          rasterised data [height][width] 
-   * @param empty_val      what value means data absent
+   * @param  min_unit      smallest unit id we are interested in
+   * @param  max_unit      largest unit id we are interested in   
    * @return an array of three four: [0,1] min/max x index, [2,3] min/max y index.
    */ 
   
-  public int[] getGlobalExtent(int[][] data, int empty_val) {
+  public int[] getGlobalExtent(int[][] data, int min_unit, int max_unit) {
     int[] result = new int[4];
-    result[0]=-1; result[1]=-1; result[2]=-1; result[3]=-1;
+    result[0]=0; result[1]=data[0].length-1; result[2]=0; result[3]=data.length-1;
 
     // Find top
     
     for (int j=0; j<data.length; j++) {
       for (int i=0; i<data[j].length; i++) {
-        if (data[j][i]!=empty_val) {
+        if ((data[j][i]>=min_unit) && (data[j][i]<=max_unit)) {
           result[2]=j;
           j=data.length-1;
           i=data[j].length;
@@ -793,9 +803,9 @@ public class GlobalRasterTools {
       }
     }
     // Find bottom
-    for (int j=data.length-1; j>=0; j--) {
+    for (int j=data.length-1; j>=result[2]; j--) {
       for (int i=0; i<data[j].length; i++) {
-        if (data[j][i]!=empty_val) {
+        if ((data[j][i]>=min_unit) && (data[j][i]<=max_unit)) {
           result[3]=j;
           j=0;
           i=data[j].length;
@@ -805,7 +815,7 @@ public class GlobalRasterTools {
     // Find left:
     for (int i=0; i<data[0].length; i++) {
       for (int j=result[2]; j<=result[3]; j++) {
-        if (data[j][i]!=empty_val) {
+        if ((data[j][i]>=min_unit) && (data[j][i]<=max_unit)) {
           result[0]=i;
           i=data[0].length;
           j=result[3];
@@ -813,9 +823,9 @@ public class GlobalRasterTools {
       }
     }
     // Find right
-    for (int i=data[0].length-1; i>=0; i--) {
+    for (int i=data[0].length-1; i>=result[0]; i--) {
       for (int j=result[2]; j<=result[3]; j++) {
-        if (data[j][i]!=empty_val) {
+        if ((data[j][i]>=min_unit) && (data[j][i]<=max_unit)) {
           result[1]=i;
           i=0;
           j=result[3];
@@ -825,6 +835,8 @@ public class GlobalRasterTools {
     
     return result;
   }
+  
+  
   
   
   

@@ -27,7 +27,7 @@ public class GemmaDRC {
     
     /* Make some hideous shape images */
     System.out.println("Making hideous images");
-    int[] extents = GRT.getGlobalExtent(GRT.map, -1);
+    int[] extents = GRT.getGlobalExtent(GRT.map, 0, Integer.MAX_VALUE);
     for (int i=0; i<GRT.unit_names.size(); i++) {
       GRT.hideousShapePNG(GRT.map, outPath+"shapes_"+i+".png", extents, i, i+": "+GRT.unit_names.get(i));
     }
