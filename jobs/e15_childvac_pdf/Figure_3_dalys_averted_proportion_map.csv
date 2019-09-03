@@ -1,0 +1,99 @@
+"country_name","country","impact_proportion","ggplot2"
+"Afghanistan","AFG",0.55,NA
+"Albania","ALB",0.81,NA
+"Angola","AGO",0.47,NA
+"Armenia","ARM",0.67,NA
+"Azerbaijan","AZE",0.53,NA
+"Bangladesh","BGD",0.56,NA
+"Belize","BLZ",0.48,NA
+"Benin","BEN",0.63,NA
+"Bhutan","BTN",0.63,NA
+"Bolivia","BOL",0.53,"Bolivia"
+"Bosnia and Herzegovina","BIH",0.28,NA
+"Burkina Faso","BFA",0.71,NA
+"Burundi","BDI",0.66,NA
+"Cape Verde","CPV",0.74,"Cape Verde"
+"Cambodia","KHM",0.62,NA
+"Cameroon","CMR",0.64,NA
+"Central African Republic","CAF",0.48,NA
+"Chad","TCD",0.42,NA
+"China","CHN",0.72,NA
+"Comoros","COM",0.62,NA
+"Republic of Congo","COG",0.6,"Republic of Congo"
+"Democratic Republic of the Congo","COD",0.59,"Democratic Republic of the Congo"
+"Ivory Coast","CIV",0.69,"Ivory Coast"
+"Cuba","CUB",0.79,NA
+"Djibouti","DJI",0.56,NA
+"Egypt","EGY",0.56,NA
+"El Salvador","SLV",0.58,NA
+"Eritrea","ERI",0.74,NA
+"Ethiopia","ETH",0.58,NA
+"Fiji","FJI",0.63,NA
+"Gambia","GMB",0.82,NA
+"Georgia","GEO",0.65,NA
+"Ghana","GHA",0.79,NA
+"Guatemala","GTM",0.45,NA
+"Guinea","GIN",0.56,NA
+"Guinea-Bissau","GNB",0.64,NA
+"Guyana","GUY",0.62,NA
+"Haiti","HTI",0.37,NA
+"Honduras","HND",0.7,NA
+"India","IND",0.42,NA
+"Indonesia","IDN",0.69,NA
+"Iraq","IRQ",0.67,NA
+"Kenya","KEN",0.67,NA
+"Kiribati","KIR",0.72,NA
+"North Korea","PRK",0.69,"North Korea"
+"Kosovo","XK",0.42,NA
+"Kyrgyzstan","KGZ",0.69,NA
+"Laos","LAO",0.57,"Laos"
+"Lesotho","LSO",0.64,NA
+"Liberia","LBR",0.63,NA
+"Madagascar","MDG",0.6,NA
+"Malawi","MWI",0.59,NA
+"Mali","MLI",0.66,NA
+"Marshall Islands","MHL",0.74,NA
+"Mauritania","MRT",0.57,NA
+"Micronesia","FSM",0.74,"Micronesia"
+"Moldova","MDA",0.81,"Moldova"
+"Mongolia","MNG",0.75,NA
+"Morocco","MAR",0.59,NA
+"Mozambique","MOZ",0.65,NA
+"Myanmar","MMR",0.65,NA
+"Nepal","NPL",0.61,NA
+"Nicaragua","NIC",0.7,NA
+"Niger","NER",0.51,NA
+"Nigeria","NGA",0.52,NA
+"Pakistan","PAK",0.52,NA
+"Palestine","PSE",0.76,"Palestine"
+"Papua New Guinea","PNG",0.61,NA
+"Paraguay","PRY",0.45,NA
+"Philippines","PHL",0.61,NA
+"Rwanda","RWA",0.7,NA
+"Samoa","WSM",0.59,NA
+"Sao Tome and Principe","STP",0.64,NA
+"Senegal","SEN",0.69,NA
+"Sierra Leone","SLE",0.62,NA
+"Solomon Islands","SLB",0.67,NA
+"Somalia","SOM",0.39,NA
+"South Sudan","SSD",0.23,NA
+"Sri Lanka","LKA",0.71,NA
+"Sudan","SDN",0.63,NA
+"Swaziland","SWZ",0.2,NA
+"Syria","SYR",0.83,"Syria"
+"Tajikistan","TJK",0.47,NA
+"Tanzania","TZA",0.67,"Tanzania"
+"Timor-Leste","TLS",0.45,NA
+"Togo","TGO",0.62,NA
+"Tonga","TON",0.77,NA
+"Tunisia","TUN",0.79,NA
+"Turkmenistan","TKM",0.64,NA
+"Tuvalu","TUV",0.76,NA
+"Uganda","UGA",0.66,NA
+"Ukraine","UKR",0.56,NA
+"Uzbekistan","UZB",0.66,NA
+"Vanuatu","VUT",0.17,NA
+"Vietnam","VNM",0.73,"Vietnam"
+"Yemen","YEM",0.64,NA
+"Zambia","ZMB",0.64,NA
+"Zimbabwe","ZWE",0.77,NA
