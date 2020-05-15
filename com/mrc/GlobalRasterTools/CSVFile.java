@@ -1,7 +1,8 @@
 package com.mrc.GlobalRasterTools;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 
 public class CSVFile {
@@ -17,7 +18,7 @@ public class CSVFile {
   public static CSVFile read(String file, boolean header) throws Exception {
     int no_cols = 0;
     CSVFile csv = new CSVFile(header);
-    BufferedReader br = new BufferedReader(new FileReader(file));
+    BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF8"));
     if (header) {
       String s = br.readLine();
       String[] bits = s.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
@@ -29,7 +30,7 @@ public class CSVFile {
       String[] bits = s.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)");
       if ((csv.data.size()==0) && (!header)) no_cols = bits.length; 
       if (no_cols!=bits.length) {
-        System.out.println("Warning: column count mismatch at line "+csv.data.size()+1+(header?1:0));
+        System.out.println("Warning: column count mismatch at line "+(int)(csv.data.size()+1+(header?1:0)));
       }
       ArrayList<String> row = new ArrayList<String>();
       for (int i=0; i<bits.length; i++) {

@@ -43,6 +43,9 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
+import uk.me.jstott.jcoord.LatLng;
+import uk.me.jstott.jcoord.OSRef;
+
 /**
  * This class contains a set of methods for handling rasteration of landscan-like population datasets, with ESRI
  * (GADM) Shapefiles, including rasterising with contention-handling, look-up, and finding centroids. It uses
@@ -211,6 +214,17 @@ public class GlobalRasterTools {
   }
   
   public void loadPolygonFolder(String folder, int max_level, List<String> countries, String version) throws Exception {
+    if (version.equals("NHS_CCG_19")) {
+      // 
+      // Clinical_Commissioning_Groups_April_2019_Boundaries_EN_BFC.dbf
+      loadPolygons(0, folder+"Clinical_Commissioning_Groups_April_2019_Boundaries_EN_BFC.shp",
+                      folder+"Clinical_Commissioning_Groups_April_2019_Boundaries_EN_BFC.dbf", null, version);
+      return;
+    } else if (version.equals("NHS_STP_19")) {
+      loadPolygons(0, folder+"Sustainability_and_Transformation_Partnerships_April_2019_EN_BFE.shp",
+          folder+"Sustainability_and_Transformation_Partnerships_April_2019_EN_BFE.dbf", null, version);
+    }
+    
     File[] fs = new File(folder).listFiles();
     for (int i = 0; i < fs.length; i++) {
       if (fs[i].getName().indexOf("0.shp") > 0) {
@@ -230,7 +244,7 @@ public class GlobalRasterTools {
         }
         
         System.out.println("Loading " + best);
-        loadPolygons(level, best, best.substring(0, best.length() - 3) + "dbf", countries);
+        loadPolygons(level, best, best.substring(0, best.length() - 3) + "dbf", countries, version);
       }
     }
  
@@ -269,7 +283,7 @@ public class GlobalRasterTools {
    * @param  countries List of GADM country names to filter by. (Or set to null for no filter). 
    * @throws Exception for any file-io related exceptions.
    */
-  public void loadPolygons(int level, String shpFile, String dbfFile, List<String> countries) throws Exception {
+  public void loadPolygons(int level, String shpFile, String dbfFile, List<String> countries, String version) throws Exception {
     
     DataInputStream dbf = new DataInputStream(new BufferedInputStream(new FileInputStream(dbfFile)));
     DataInputStream shp = new DataInputStream(new BufferedInputStream(new FileInputStream(shpFile)));
@@ -346,6 +360,25 @@ public class GlobalRasterTools {
           utf_string=utf_string.replace("\n", " ");          
           
           for (int k=0; k<=level; k++) {
+            if (version.equals("NHS_STP_19")) {
+              if (f_names.get(j).trim().equals("stp19nm")) {
+                entry_names[k]=utf_string.trim();
+              }
+              if (f_names.get(j).trim().equals("objectid")) {
+                entry_nums[k]=utf_string.trim();
+              }
+              break;
+            }
+            
+            if (version.equals("NHS_CCG_18")) {
+              if (f_names.get(j).trim().equals("CCG19NM")) {
+                entry_names[k]=utf_string.trim();
+              }
+              if (f_names.get(j).trim().equals("FID")) {
+                entry_nums[k]=utf_string.trim();
+              }
+            }
+                        
             if (f_names.get(j).trim().equals("ID_"+String.valueOf(k))) {
               entry_nums[k]=utf_string.trim();
             }
@@ -367,42 +400,48 @@ public class GlobalRasterTools {
           }
           
           // For DHS Level 1 shape file (IsaacTanzania)
-          
-          if (f_names.get(j).trim().equals("REGNAME")) {
-            entry_names[1]=utf_string.trim();
-            entry_names[0]="Tanzania";
-          } 
-          if (f_names.get(j).trim().equals("REGCODE")) {
-            entry_nums[1]=utf_string.trim();
-            entry_nums[0]="0";
+          if (version.equals("Isaac-Tanzania")) {
+            if (f_names.get(j).trim().equals("REGNAME")) {
+              entry_names[1]=utf_string.trim();
+              entry_names[0]="Tanzania";
+            } 
+            if (f_names.get(j).trim().equals("REGCODE")) {
+              entry_nums[1]=utf_string.trim();
+              entry_nums[0]="0";
+            }
           }
           
           // For DRC health unit (Gemma-DRC)
+          if (version.equals("Gemma-DRC")) {
           
-          if (f_names.get(j).trim().equals("Area")) {
-            entry_names[5]=utf_string.trim();
-            entry_names[0]="DRC";
-          }
+            if (f_names.get(j).trim().equals("Area")) {
+              entry_names[5]=utf_string.trim();
+              entry_names[0]="DRC";
+            }
           
-          if (f_names.get(j).trim().equals("Code_DHIS2")) {
-            entry_names[4]=utf_string.trim();
-            entry_names[0]="DRC";
-          }
+            if (f_names.get(j).trim().equals("Code_DHIS2")) {
+              entry_names[4]=utf_string.trim();
+              entry_names[0]="DRC";
+            }
           
-          if (f_names.get(j).trim().equals("Nom")) {
-            entry_names[3]=utf_string.trim();
-            entry_names[0]="DRC";
-          }
-          if (f_names.get(j).trim().equals("TERRITOIRE")) {
-            entry_names[2]=utf_string.trim();
-            entry_names[0]="DRC";
-          }
-          if (f_names.get(j).trim().equals("PROVINCE")) {
-            entry_names[1]=utf_string.trim();
-            entry_names[0]="DRC";
-          } else if (f_names.get(j).trim().equals("ZSName")) {
-            entry_names[1]=utf_string.trim();
-            entry_names[0]="DRC";
+            if (f_names.get(j).trim().equals("Nom")) {
+              entry_names[3]=utf_string.trim();
+              entry_names[0]="DRC";
+            }
+          
+            if (f_names.get(j).trim().equals("TERRITOIRE")) {
+              entry_names[2]=utf_string.trim();
+              entry_names[0]="DRC";
+            }
+          
+            if (f_names.get(j).trim().equals("PROVINCE")) {
+              entry_names[1]=utf_string.trim();
+              entry_names[0]="DRC";
+            
+            } else if (f_names.get(j).trim().equals("ZSName")) {
+              entry_names[1]=utf_string.trim();
+              entry_names[0]="DRC";
+            }
           }
         } 
       }
@@ -453,6 +492,12 @@ public class GlobalRasterTools {
             for (int j = 0; j < no_points_in_part; j++) {
               double p_x = Double.longBitsToDouble(Long.reverseBytes(shp.readLong()));
               double p_y = Double.longBitsToDouble(Long.reverseBytes(shp.readLong()));
+              if (version.equals("NHS_STP_19")) {
+                LatLng latLng = new OSRef(p_x, p_y).toLatLng();
+                latLng.toWGS84();
+                p_x = latLng.getLng();
+                p_y = latLng.getLat();
+              }
               int p_x_int = (int) Math.round(INT_SCALER * p_x);
               int p_y_int = (int) Math.round(INT_SCALER * p_y);
               if (dpoly.npoints == 0) dpoly.addPoint(p_x_int, p_y_int);
@@ -469,13 +514,11 @@ public class GlobalRasterTools {
             
             polys.add(dpoly);
           }
-          if (entry_names[0].equals("Colombia")) {
-            System.out.println("XTOP");
-          }
+
           if ((countries==null) || (countries.contains(entry_names[0]))) { 
             unit_shapes.add(polys);
             unit_names.add(String.join("\t", entry_names));
-            unit_numbers.add(String.join("\t",entry_nums));
+            unit_numbers.add(String.join("\t", entry_nums));
           } else System.out.println("Skipping unwanted "+entry_names[0]);
           
         } else if (rec_shape_type == 0) {
@@ -998,6 +1041,7 @@ public class GlobalRasterTools {
     System.out.println("Read time = "+time);
     return ls;
   }
+  
   public float[][] loadFloatGrid(String file, int dwid, int dhei, int fwid, int fhei,int off_x, int off_y) throws Exception {
     long time = -System.currentTimeMillis();
     float[][] ls = new float[dhei][dwid];
