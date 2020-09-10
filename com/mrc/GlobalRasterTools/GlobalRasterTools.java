@@ -223,6 +223,13 @@ public class GlobalRasterTools {
     } else if (version.equals("NHS_STP_19")) {
       loadPolygons(0, folder+"Sustainability_and_Transformation_Partnerships_April_2019_EN_BFE.shp",
           folder+"Sustainability_and_Transformation_Partnerships_April_2019_EN_BFE.dbf", null, version);
+    
+    } else if (version.equals("DH_REGION")) {
+      loadPolygons(0, folder+"NHSEngRegionsandDevolved.shp", folder+"NHSEngRegionsandDevolved.dbf", null, version);
+      
+    } else if (version.equals("MSOA")) {
+      loadPolygons(0, folder+"Middle_Layer_Super_Output_Areas__December_2011__Boundaries_EW_BFC.shp", 
+          folder+"Middle_Layer_Super_Output_Areas__December_2011__Boundaries_EW_BFC.dbf", null, version);
     }
     
     File[] fs = new File(folder).listFiles();
@@ -377,8 +384,26 @@ public class GlobalRasterTools {
               if (f_names.get(j).trim().equals("FID")) {
                 entry_nums[k]=utf_string.trim();
               }
+              
+            } else if (version.equals("MSOA")) {
+              if (f_names.get(j).trim().equals("MSOA11NM")) {
+                entry_names[k]=utf_string.trim();
+                System.out.println(entry_names[k]);
+              }
+              if (f_names.get(j).trim().equals("MSOA11CD")) {
+                entry_nums[k]=utf_string.trim();
+              }
+            
+            } else if (version.equals("DH_REGION")) {
+              if (f_names.get(j).trim().equals("GSS_CD")) {
+                entry_nums[k]=utf_string.trim();
+                System.out.println(entry_nums[k]);
+              }
+              if (f_names.get(j).trim().equals("GSS_NM")) {
+                entry_names[k]=utf_string.trim();
+              }
             }
-                        
+                                  
             if (f_names.get(j).trim().equals("ID_"+String.valueOf(k))) {
               entry_nums[k]=utf_string.trim();
             }
@@ -492,7 +517,7 @@ public class GlobalRasterTools {
             for (int j = 0; j < no_points_in_part; j++) {
               double p_x = Double.longBitsToDouble(Long.reverseBytes(shp.readLong()));
               double p_y = Double.longBitsToDouble(Long.reverseBytes(shp.readLong()));
-              if (version.equals("NHS_STP_19")) {
+              if (version.equals("NHS_STP_19") || version.equals("DH_REGION") || version.equals("MSOA")) {
                 LatLng latLng = new OSRef(p_x, p_y).toLatLng();
                 latLng.toWGS84();
                 p_x = latLng.getLng();
