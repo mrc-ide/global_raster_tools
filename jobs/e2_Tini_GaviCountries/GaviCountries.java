@@ -23,13 +23,17 @@ public class GaviCountries {
       "Kiribati", "Laos", "Liberia", "Sri Lanka", "Lesotho", "Moldova", "Madagascar", "Mali", "Myanmar", "Mongolia",
       "Mozambique", "Mauritania", "Malawi", "Niger", "Nigeria", "Nicaragua", "Nepal", "Pakistan", "Papua New Guinea",
       "North Korea", "Rwanda", "Sudan", "Senegal", "Solomon Islands", "Sierra Leone", "Somalia", "South Sudan",
-      "Sao Tome and Principe", "Chad", "Togo", "Tajikistan", "East Timor", "Tanzania", "Uganda", "Ukraine", "Uzbekistan",
+      "São Tomé and Príncipe", "Chad", "Togo", "Tajikistan", "Timor-Leste", "Tanzania", "Uganda", "Ukraine", "Uzbekistan",
       "Vietnam", "Yemen", "Zambia", "Zimbabwe"});
   
   final List<String> gavi98_extras = Arrays.asList(new String[] {
       "Albania", "Bosnia and Herzegovina", "Belize", "China", "Cape Verde", "Egypt", "Fiji", "Micronesia", "Guatemala",
       "Iraq", "Morocco", "Marshall Islands", "Philippines", "Paraguay", "Palestina", "El Salvador", "Swaziland",
       "Syria", "Turkmenistan", "Tonga", "Tunisia", "Tuvalu", "Vanuatu", "Samoa", "Kosovo" });
+  
+  final List<String> gavi112_extras = Arrays.asList(new String[] {
+      "Belarus", "Colombia", "Algeria", "Ecuador", "Iran", "Jamaica", "Jordan", "Macedonia", "Namibia", "Peru", "Serbia",
+      "Thailand", "South Africa", "Venezuela" });
   
   static String outPath = "E:\\Jobs\\Tini-GaviCountries\\";
   static String gadmPath = "E:\\Data\\Boundaries\\GADM3_6\\";
@@ -46,12 +50,12 @@ public class GaviCountries {
     new File(gadmPath).mkdirs();
     
     GlobalRasterTools GRT = new GlobalRasterTools();
-    if (!new File(gadmPath+"ZWE_adm2.shp").exists()) {
+    if (!new File(gadmPath+"gadm36_ZWE_0.shp").exists()) {
       System.out.println("Downloading GADM shapes...");
       GRT.downloadShapeFiles(gadmPath,"3.6");
     }
                                        
-    GRT.loadPolygonFolder(gadmPath, 0, null);
+    GRT.loadPolygonFolder(gadmPath, 0, "3.6");
     
     if (!new File(outPath+"map.bin").exists()) {
       System.out.println("Making map");
@@ -67,16 +71,25 @@ public class GaviCountries {
     
     ArrayList<Integer> c73 = new ArrayList<Integer>();
     ArrayList<Integer> c98 = new ArrayList<Integer>();
+    ArrayList<Integer> c112 = new ArrayList<Integer>();
+    
     for (int i=0; i<GRT.unit_names.size(); i++) {
-      if (gavi73_countries.contains(GRT.unit_names.get(i).split("\t")[0])) c73.add(i);
+      if (gavi73_countries.contains(GRT.unit_names.get(i).split("\t")[0])) {
+        c73.add(i);
+        System.out.println(GRT.unit_names.get(i));
+      }
       if (gavi98_extras.contains(GRT.unit_names.get(i).split("\t")[0])) c98.add(i);
+      if (gavi112_extras.contains(GRT.unit_names.get(i).split("\t")[0])) c112.add(i);
     }
+    
+    System.out.println("Test length: c73 = "+c73.size()+", c98 = "+c98.size()+", c112 = "+c112.size());
     
     int white = Color.white.getRGB();
     int grey = new Color(160,160,160).getRGB();
     int black = new Color(0,0,0).getRGB();
-    int cc73 = new Color(230,210,172).getRGB();
-    int cc98 = new Color(255,240,222).getRGB();
+    int cc73 = new Color(213,195,144).getRGB();
+    int cc98 = new Color(230,210,172).getRGB();
+    int cc112 = new Color(255,240,222).getRGB();
     
     
     int h = GRT.map.length / 10;
@@ -86,9 +99,10 @@ public class GaviCountries {
     
     for (int j=0; j<GRT.map.length; j++) {
       for (int i=0; i<GRT.map[j].length; i++) {
-        if (GRT.map[i][j]>=0) {
+        if (GRT.map[j][i]>=0) {
           if (c73.contains(GRT.map[j][i])) png.setRGB(i/10, j/10, cc73);
           else if (c98.contains(GRT.map[j][i])) png.setRGB(i/10, j/10, cc98);
+          else if (c112.contains(GRT.map[j][i])) png.setRGB(i/10, j/10, cc112);
           else png.setRGB(i/10, j/10, grey);
         } 
       }

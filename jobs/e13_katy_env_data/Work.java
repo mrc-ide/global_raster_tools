@@ -21,7 +21,7 @@ import ucar.nc2.dataset.NetcdfDataset;
 
 public class Work {
   static String workDir = "E:/Jobs/katy_env/";
-  static String input = workDir + "dat_5.csv";
+  static String input = workDir + "dat_asia6.csv";
   static String gadmPath = "E:\\Data\\Boundaries\\GADM3_6\\";
 
     
@@ -67,14 +67,30 @@ public class Work {
             
           } else {
             Arrays.fill(correction,  0);
-            byte d2 = landcover[(j*2)+1][i*2]; if ((d2>=1) && (d2<=17)) correction[d2]+=2;
-            d2 = landcover[(j*2)][(i*2)+1];    if ((d2>=1) && (d2<=17)) correction[d2]+=2;
-            d2 = landcover[(j*2)-1][i*2];      if ((d2>=1) && (d2<=17)) correction[d2]+=2;
-            d2 = landcover[(j*2)][(i*2)-1];    if ((d2>=1) && (d2<=17)) correction[d2]+=2;
-            d2 = landcover[(j*2)+1][(i*2)+1];  if ((d2>=1) && (d2<=17)) correction[d2]+=1;
-            d2 = landcover[(j*2)+1][(i*2)-1];  if ((d2>=1) && (d2<=17)) correction[d2]+=1;
-            d2 = landcover[(j*2)-1][(i*2)-1];  if ((d2>=1) && (d2<=17)) correction[d2]+=1;
-            d2 = landcover[(j*2)-1][(i*2)+1];  if ((d2>=1) && (d2<=17)) correction[d2]+=1;
+            int lcx = i*2;
+            int lcxm1 = lcx-1;
+            if (lcxm1 == -1) lcxm1 = 86399;
+            int lcxp1 = lcx+1;
+            if (lcxp1>=86400) lcxp1 = 0;
+            int lcy = j*2;
+            int lcym1 = lcy-1;
+            int lcyp1 = lcy+1;
+            
+            byte d2 = -1;
+
+            d2 = landcover[lcy][lcxp1]; if ((d2>=1) && (d2<=17)) correction[d2]+=2;
+            d2 = landcover[lcy][lcxm1];    if ((d2>=1) && (d2<=17)) correction[d2]+=2;
+            
+            if (lcy>0) { 
+              d2 = landcover[lcym1][lcxm1];  if ((d2>=1) && (d2<=17)) correction[d2]+=1;
+              d2 = landcover[lcym1][lcx];     if ((d2>=1) && (d2<=17)) correction[d2]+=2;
+              d2 = landcover[lcym1][lcxp1];  if ((d2>=1) && (d2<=17)) correction[d2]+=1;
+            }
+            if (lcy < 43199) { 
+              d2 = landcover[lcyp1][lcxp1];  if ((d2>=1) && (d2<=17)) correction[d2]+=1;
+              d2 = landcover[lcyp1][lcx]; if ((d2>=1) && (d2<=17)) correction[d2]+=2;
+              d2 = landcover[lcyp1][lcxm1];  if ((d2>=1) && (d2<=17)) correction[d2]+=1;
+            }
             int best_val=-1;
             int best_lc=-1;
             for (d2=1; d2<=17; d2++) {
@@ -232,7 +248,7 @@ public class Work {
     }
     for (int year=2003; year<=2006; year++) {
       System.out.println("Year "+year);
-      //evi_mir_data = evi_mir_stats(year,  unit_pixels, evi_mir_data);
+      evi_mir_data = evi_mir_stats(year,  unit_pixels, evi_mir_data);
       lc = landcover_stats(year, lc, GRT);
     }
     BufferedReader br = new BufferedReader(new FileReader(input));
@@ -245,6 +261,7 @@ public class Work {
     while (s!=null) {
       PW.print(s+",");
       if ((csv.get("country", r)+"\t"+csv.get("Province", r)).equals(GRT.unit_names.get(r))) {
+        
         evi_mir_data[r][2] /= (double) evi_mir_data[r][3];
         evi_mir_data[r][6] /= (double) evi_mir_data[r][7];
         PW.print(evi_mir_data[r][2]+","+evi_mir_data[r][0]+","+evi_mir_data[r][1]+",");
@@ -261,7 +278,7 @@ public class Work {
         s = br.readLine();
         r++;
       } else {
-        System.out.println("Unit mismatch - Expected "+csv.get("country", r)+"\t"+csv.get("Provice", r)+", Shapefile says "+GRT.unit_names.get(r));
+        System.out.println("Unit mismatch - Expected "+csv.get("country", r)+"\t"+csv.get("Province", r)+", Shapefile says "+GRT.unit_names.get(r));
         s = br.readLine();
         r++;
       }

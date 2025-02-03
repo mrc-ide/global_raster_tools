@@ -19,10 +19,10 @@ public class create_adm2 {
   private final static String wpop_file = "E:/Data/Census/WorldPop/global/worldpop2020global.bil";
   
   private final static int max_level = 2;
-  private final static String[] popa_countries = new String[] { "United Kingdom"};
-  private final static String[] gadm36_countries = new String[] { "United Kingdom"};
-  private final static String index_file_out = "wpop_uk_adm"+max_level+"_index.txt";
-  private final static String pop_file_out = "wpop_uk_adm"+max_level+".txt";
+  private final static String[] popa_countries = new String[] { "Nigeria"};
+  private final static String[] gadm36_countries = new String[] { "Nigeria"};
+  private final static String index_file_out = "wpop_nga_adm"+max_level+"_index.txt";
+  private final static String pop_file_out = "wpop_nga_adm"+max_level+".txt";
  
   static void update_ids(String[] name_bits, String[] num_bits, String[] current_admin, int[] admin_no) {
     for (int lev = 0; lev < max_level; lev++) {
@@ -225,6 +225,6 @@ public class create_adm2 {
   public static void main(String[] args) throws Exception {
     create_adm2 CAD2 = new create_adm2();
     CAD2.run();
-    CAD2.createIsleOfWightAscii();
+    //CAD2.createIsleOfWightAscii();
   }
 }

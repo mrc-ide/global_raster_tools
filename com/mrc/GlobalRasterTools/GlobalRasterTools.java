@@ -62,6 +62,7 @@ public class GlobalRasterTools {
   private Graphics2D g2d = null;
   public ArrayList<String> unit_names = new ArrayList<String>();
   public ArrayList<String> unit_numbers = new ArrayList<String>();
+  public ArrayList<String> cc2_code = new ArrayList<String>();
   public ArrayList<ArrayList<GlobalRasterTools.DPolygon>> unit_shapes = new ArrayList<ArrayList<GlobalRasterTools.DPolygon>>();
   public int[][] map = null;
   
@@ -278,6 +279,7 @@ public class GlobalRasterTools {
       unit_shapes.get(i).clear();
     }
     unit_shapes.clear();
+    cc2_code.clear();
   }
   
   /**
@@ -291,7 +293,7 @@ public class GlobalRasterTools {
    * @throws Exception for any file-io related exceptions.
    */
   public void loadPolygons(int level, String shpFile, String dbfFile, List<String> countries, String version) throws Exception {
-    
+    int euro_level = -1; // Special for EURO NUTS where levels are all in one file
     DataInputStream dbf = new DataInputStream(new BufferedInputStream(new FileInputStream(dbfFile)));
     DataInputStream shp = new DataInputStream(new BufferedInputStream(new FileInputStream(shpFile)));
     ArrayList<String> f_names = new ArrayList<String>();
@@ -326,8 +328,8 @@ public class GlobalRasterTools {
       /*int auto_incr_step = */ dbf.readByte();
       dbf.readDouble(); // Skip 8 bytes
       f_names.add(new String(title));
-      f_types.add(new Character(type));
-      f_lengths.add(new Integer(field_length));
+      f_types.add(type);
+      f_lengths.add(field_length);
       starter = (char) dbf.readByte();
     }
    
@@ -351,8 +353,10 @@ public class GlobalRasterTools {
     while (file_pointer < file_size) {
       // Read record header
       /*byte del = */dbf.readByte();
-      String[] entry_names = new String[level+1];
-      String[] entry_nums = new String[level+1];
+      String[] entry_names = new String[version.equals("EURO_NUTS") ? 2 : level + 1];
+      String[] entry_nums = new String[version.equals("EURO_NUTS") ? 2 : level + 1];
+      String remember_cc_2 = "";
+      
       for (int j = 0; j < f_names.size(); j++) {
         char type = f_types.get(j).charValue();
         int length = f_lengths.get(j).intValue();
@@ -365,9 +369,21 @@ public class GlobalRasterTools {
           String utf_string = new String(string, Charset.forName("UTF-8"));
           utf_string=utf_string.replace("\r", " ");
           utf_string=utf_string.replace("\n", " ");          
-          
+          if (f_names.get(j).trim().equals("CC_2")) {
+          	remember_cc_2 = utf_string.trim();
+          }
           for (int k=0; k<=level; k++) {
-            if (version.equals("NHS_STP_19")) {
+            if (version.equals("NHS_REG_20")) {
+              if (f_names.get(j).trim().equals("nhser20nm")) {
+                entry_names[k]=utf_string.trim();
+              }
+              if (f_names.get(j).trim().equals("nhser20cd")) {
+                entry_nums[k]=utf_string.trim();
+              }
+              break;
+            }
+            
+          	if (version.equals("NHS_STP_19")) {
               if (f_names.get(j).trim().equals("stp19nm")) {
                 entry_names[k]=utf_string.trim();
               }
@@ -402,13 +418,60 @@ public class GlobalRasterTools {
               if (f_names.get(j).trim().equals("GSS_NM")) {
                 entry_names[k]=utf_string.trim();
               }
+            } else if (version.equals("TORI_BRAZIL2")) {
+              if (f_names.get(j).trim().equals("code_mn")) {
+                entry_nums[k]=new String(""+(int) Double.parseDouble(utf_string.trim()));
+                System.out.println(entry_nums[k]);
+              }
+              if (f_names.get(j).trim().equals("name_mn")) {
+                entry_names[k]=utf_string.trim();
+              }
+            } else if (version.equals("ILARIA_SRILANKA")) {
+            	if (f_names.get(j).trim().equals("name")) {
+            		entry_names[2]=new String(utf_string.trim());
+                entry_names[0]="Sri_Lanka";
+              }
+            	if (f_names.get(j).trim().equals("parentName")) {
+                entry_names[1]=new String(utf_string.trim());
+                entry_nums[0]="LKA";
+              }
+            	
+            } else if (version.equals("ILARIA_NEPAL")) {
+            	if (f_names.get(j).trim().equals("FIRST_DIST")) {
+                entry_names[1]=new String(utf_string.trim());
+                entry_names[0]="Nepal";
+              }
+            	else if (f_names.get(j).trim().equals("OBJECTID_1")) {
+                entry_nums[1]=new String(utf_string.trim());
+                entry_nums[0]="NPL";
+              }
+            
+            } else if (version.equals("EURO_NUTS")) {
+            	if (f_names.get(j).trim().equals("NUTS_ID")) {
+            		entry_nums[1] = new String(utf_string.trim());
+            	}
+            	else if (f_names.get(j).trim().equals("NUTS_NAME")) {
+            		entry_names[1] = new String(utf_string.trim());
+            	}
+            	else if (f_names.get(j).trim().equals("CNTR_CODE")) {
+            		entry_nums[0] = new String(utf_string.trim());
+            		entry_names[0] = new String(utf_string.trim()); 
+            	}
+            	else if (f_names.get(j).trim().equals("LEVL_CODE")) {
+            		euro_level = Integer.parseInt(utf_string.trim());
+            	}
+
             }
                                   
-            if (f_names.get(j).trim().equals("ID_"+String.valueOf(k))) {
+            
+            else if (f_names.get(j).trim().equals("ID_"+String.valueOf(k))) {
               entry_nums[k]=utf_string.trim();
             }
             else if (f_names.get(j).trim().equals("GID_"+String.valueOf(k))) {
               entry_nums[k]=utf_string.trim();
+            }
+            else if (f_names.get(j).trim().equals("COUNTRY") && k == 0) {
+              entry_names[k]=utf_string.trim();
             }
             else if (f_names.get(j).trim().equals("NAME_"+String.valueOf(k))) {
               entry_names[k]=utf_string.trim();
@@ -517,7 +580,8 @@ public class GlobalRasterTools {
             for (int j = 0; j < no_points_in_part; j++) {
               double p_x = Double.longBitsToDouble(Long.reverseBytes(shp.readLong()));
               double p_y = Double.longBitsToDouble(Long.reverseBytes(shp.readLong()));
-              if (version.equals("NHS_STP_19") || version.equals("DH_REGION") || version.equals("MSOA")) {
+              if (version.equals("NHS_STP_19") || version.equals("NHS_REG_20") || 
+              		version.equals("DH_REGION") || version.equals("MSOA")) {
                 LatLng latLng = new OSRef(p_x, p_y).toLatLng();
                 latLng.toWGS84();
                 p_x = latLng.getLng();
@@ -541,9 +605,12 @@ public class GlobalRasterTools {
           }
 
           if ((countries==null) || (countries.contains(entry_names[0]))) { 
-            unit_shapes.add(polys);
-            unit_names.add(String.join("\t", entry_names));
-            unit_numbers.add(String.join("\t", entry_nums));
+          	if (!version.equals("EURO_NUTS") || (euro_level == level)) {
+              unit_shapes.add(polys);
+              unit_names.add(String.join("\t", entry_names));
+              unit_numbers.add(String.join("\t", entry_nums));
+              cc2_code.add(remember_cc_2);
+          	}
           } else System.out.println("Skipping unwanted "+entry_names[0]);
           
         } else if (rec_shape_type == 0) {
@@ -852,17 +919,26 @@ public class GlobalRasterTools {
    * @param  data          rasterised data [height][width] 
    * @param  min_unit      smallest unit id we are interested in
    * @param  max_unit      largest unit id we are interested in   
+   * @param  limits        Limit search to within these extents
    * @return an array of three four: [0,1] min/max x index, [2,3] min/max y index.
    */ 
-  
   public int[] getGlobalExtent(int[][] data, int min_unit, int max_unit) {
+    return getGlobalExtent(data, min_unit, max_unit, null);
+  }
+  
+  public int[] getGlobalExtent(int[][] data, int min_unit, int max_unit, int[] limits) {
     int[] result = new int[4];
-    result[0]=0; result[1]=data[0].length-1; result[2]=0; result[3]=data.length-1;
+    int left = (limits == null) ? 0 : limits[0];
+    int right = (limits == null) ? data[0].length-1 : limits[1];
+    int top = (limits == null) ? 0 : limits[2];
+    int bottom = (limits == null) ? data.length - 1 : limits[3];
+    result[0]=left; result[1]=right; result[2]=top; result[3]=bottom;
+    
 
     // Find top
     
-    for (int j=0; j<data.length; j++) {
-      for (int i=0; i<data[j].length; i++) {
+    for (int j=top; j<=bottom; j++) {
+      for (int i=left; i<=right; i++) {
         if ((data[j][i]>=min_unit) && (data[j][i]<=max_unit)) {
           result[2]=j;
           j=data.length-1;
@@ -871,8 +947,8 @@ public class GlobalRasterTools {
       }
     }
     // Find bottom
-    for (int j=data.length-1; j>=result[2]; j--) {
-      for (int i=0; i<data[j].length; i++) {
+    for (int j=bottom; j>=result[2]; j--) {
+      for (int i=left; i<=right; i++) {
         if ((data[j][i]>=min_unit) && (data[j][i]<=max_unit)) {
           result[3]=j;
           j=0;
@@ -881,7 +957,7 @@ public class GlobalRasterTools {
       }
     }
     // Find left:
-    for (int i=0; i<data[0].length; i++) {
+    for (int i=left; i<=right; i++) {
       for (int j=result[2]; j<=result[3]; j++) {
         if ((data[j][i]>=min_unit) && (data[j][i]<=max_unit)) {
           result[0]=i;
@@ -891,7 +967,7 @@ public class GlobalRasterTools {
       }
     }
     // Find right
-    for (int i=data[0].length-1; i>=result[0]; i--) {
+    for (int i=right; i>=result[0]; i--) {
       for (int j=result[2]; j<=result[3]; j++) {
         if ((data[j][i]>=min_unit) && (data[j][i]<=max_unit)) {
           result[1]=i;
@@ -945,7 +1021,7 @@ public class GlobalRasterTools {
       }
     }
     
-    if (!found) { return null; }
+    if (!found) { return new double[] {-999,-999,-999}; }
 
     // Now calculate totals of population and area.
     
@@ -1057,7 +1133,36 @@ public class GlobalRasterTools {
     for (int j = 0; j < fhei; j++) {
       MappedByteBuffer mbb = fc.map(MapMode.READ_ONLY, (long) (4L*j*fwid), fwid*4L);
       for (int i = 0; i < fwid; i++) {
-        ls[off_y+j][off_x+i] = (int) Float.intBitsToFloat(Integer.reverseBytes(Float.floatToRawIntBits(mbb.getFloat())));
+        //int pop = Math.max(0, Integer.reverseBytes(mbb.getInt());
+        //ls[off_y+j][off_x+i] = (int) //Float.intBitsToFloat(Integer.reverseBytes(Float.floatToRawIntBits(mbb.getFloat())));#
+        ls[off_y+j][off_x+i] = (int)Math.max(0, Integer.reverseBytes(mbb.getInt()));
+        //ls[off_y+j][off_x+i] = (int)Math.max(0, mbb.getInt());
+      }
+      mbb.clear();
+    }
+    fc.close();
+    time+=System.currentTimeMillis();
+    System.out.println("Read time = "+time);
+    return ls;
+  }
+  
+  /**
+   * Load a previously saved raster map file
+   * <p>
+   * 
+   * @param  file           the filename 
+   * @throws Exception      if any exception occurs.
+   */
+  public short[][] loadShortGrid(String file, int dwid, int dhei, int fwid, int fhei, int off_x, int off_y) throws Exception {
+    long time = -System.currentTimeMillis();
+    short[][] ls = new short[dhei][dwid];
+    FileChannel fc = FileChannel.open(Paths.get(file));
+    for (int j = 0; j < fhei; j++) {
+      MappedByteBuffer mbb = fc.map(MapMode.READ_ONLY, (long) (2L*j*fwid), fwid*2L);
+      for (int i = 0; i < fwid; i++) {
+        //int pop = Math.max(0, Integer.reverseBytes(mbb.getInt());
+        //ls[off_y+j][off_x+i] = (int) //Float.intBitsToFloat(Integer.reverseBytes(Float.floatToRawIntBits(mbb.getFloat())));#
+        ls[off_y+j][off_x+i] = (short) Math.max(0, Short.reverseBytes(mbb.getShort()));
       }
       mbb.clear();
     }
@@ -1115,10 +1220,10 @@ public class GlobalRasterTools {
     
     for (int i = 0; i < unit_names.get(0).split("\t").length; i++) PW.print("N"+i+"\t");
     for (int i = 0; i < unit_numbers.get(0).split("\t").length; i++) PW.print("C"+i+"\t");
-    PW.println("");
+    PW.println("CC_2");
     
     for (int i = 0; i < unit_numbers.size(); i++) {
-      PW.println(i + "\t" + unit_names.get(i) + "\t" + unit_numbers.get(i));
+      PW.println(i + "\t" + unit_names.get(i) + "\t" + unit_numbers.get(i) + "\t" + cc2_code.get(i));
     }
     PW.close();
   }
@@ -1290,6 +1395,9 @@ public class GlobalRasterTools {
               } else if (version.equals("3.6")) {
                 while (extractFromZip(folder+code+".zip",
                     new String[] {"gadm36_"+code+"_"+lev+".shp","gadm36_"+code+"_"+lev+".dbf"}, folder)) lev++;
+              } else if (version.equals("4.1")) {
+                while (extractFromZip(folder+code+".zip",
+                    new String[] {"gadm41_"+code+"_"+lev+".shp","gadm41_"+code+"_"+lev+".dbf"}, folder)) lev++;
               }
               new File(folder+code+".zip").delete();
             }
@@ -1326,9 +1434,10 @@ public class GlobalRasterTools {
         title = title.replace("\t",  ", ");
         Graphics g = bi.getGraphics();
         g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial",Font.BOLD,42));
+        g.setFont(new Font("Arial",Font.BOLD,21));
         g.drawString(title, 20,  HEI-20);
       }
+      
       ArrayList<Integer> cols = new ArrayList<Integer>();
       for (int i=extents[0]; i<=extents[1]; i++) {
         for (int j=extents[2]; j<=extents[3]; j++) {

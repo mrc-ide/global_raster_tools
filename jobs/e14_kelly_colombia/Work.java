@@ -23,7 +23,7 @@ public class Work {
   
   public void run(String[] args) throws Exception {
     GlobalRasterTools GRT = new GlobalRasterTools();
-    GRT.loadPolygons(2, shapePath+shapeFile, shapePath+dbfFile, new ArrayList<String>(Arrays.asList(new String[] {"Colombia"}))); 
+    GRT.loadPolygons(2, shapePath+shapeFile, shapePath+dbfFile, new ArrayList<String>(Arrays.asList(new String[] {"Colombia"})), "Kelly-Colombia"); 
         
     if (!new File(workDir+"map.bin").exists()) {
       GRT.makeMap();

@@ -14,7 +14,7 @@ public class GemmaDRC {
   public void run(String[] args) throws Exception {
    
     GlobalRasterTools GRT = new GlobalRasterTools();
-    GRT.loadPolygons(1, shapePath+shapename+".shp", shapePath+shapename+".dbf", null);
+    GRT.loadPolygons(1, shapePath+shapename+".shp", shapePath+shapename+".dbf", null, "Gemma-DRC");
         
     if (!new File(outPath+"map.bin").exists()) {
       GRT.makeMap();
